@@ -152,8 +152,7 @@ extern void		FirewallDidChange( mDNS * const inMDNS );
 extern mStatus  TCPAddSocket( mDNS * const inMDNS, TCPSocket *sock );
 extern mStatus	SetupInterfaceList( mDNS * const inMDNS );
 extern mStatus	TearDownInterfaceList( mDNS * const inMDNS );
-extern BOOL		IsWOMPEnabled();
-extern void     DispatchSocketEvents( mDNS * const inMDNS );
+extern BOOL		IsWOMPEnabled( mDNS * const m );
 
 
 #ifdef	__cplusplus

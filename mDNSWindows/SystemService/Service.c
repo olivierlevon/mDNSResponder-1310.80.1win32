@@ -89,6 +89,7 @@ static CacheEntity gRRCache[RR_CACHE_SIZE];
 //===========================================================================================================================
 //	Prototypes
 //===========================================================================================================================
+
 static void				Usage( void );
 static BOOL WINAPI		ConsoleControlHandler( DWORD inControlEvent );
 static OSStatus			InstallService( LPCTSTR inName, LPCTSTR inDisplayName, LPCTSTR inDescription, LPCTSTR inPath );
@@ -1246,7 +1247,6 @@ static OSStatus	ServiceSpecificRun( int argc, LPTSTR argv[] )
 	{
 		static mDNSs32 RepeatedBusy = 0;	
 		mDNSs32 nextTimerEvent;
-		mStatus err;
 
 		// Give the mDNS core a chance to do its work and determine next event time.
 
@@ -2002,7 +2002,7 @@ UDSAcceptNotification( SOCKET sock, LPWSANETWORKEVENTS event, void *context )
 	
 	if ( gUDSCallback )
 	{
-		gUDSCallback( ( int ) gUDSSocket, 0, context );
+		gUDSCallback( ( int ) gUDSSocket, context );
 	}
 }
 
@@ -2127,12 +2127,11 @@ udsSupportRemoveFDFromEventLoop( SocketRef fd, void *platform_data)		// Note: Th
 }
 
 
-mDNSexport void RecordUpdatedNiceLabel(mDNS *const m, mDNSs32 delay)
-	{
-	(void)m;
+mDNSexport void RecordUpdatedNiceLabel(mDNSs32 delay)
+{
 	(void)delay;
 	// No-op, for now
-	}
+}
 
 
 //===========================================================================================================================

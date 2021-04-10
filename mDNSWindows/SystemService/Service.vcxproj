@@ -254,6 +254,7 @@ xcopy /I/Y "$(TargetDir)$(TargetName).pdb"                                      
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\mDNSShared\ClientRequests.c" />
     <ClCompile Include="..\..\mDNSShared\DebugServices.c" />
     <ClCompile Include="..\..\mDNSCore\DNSCommon.c" />
     <ClCompile Include="..\..\mDNSCore\DNSDigest.c" />
@@ -288,6 +289,7 @@ xcopy /I/Y "$(TargetDir)$(TargetName).pdb"                                      
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\mDNSShared\ClientRequests.h" />
     <ClInclude Include="..\..\mDNSShared\CommonServices.h" />
     <ClInclude Include="..\..\mDNSShared\DebugServices.h" />
     <ClInclude Include="..\..\mDNSCore\DNSCommon.h" />
