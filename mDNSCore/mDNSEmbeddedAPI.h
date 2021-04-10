@@ -2356,7 +2356,7 @@ struct mDNS_struct
     mDNSu32 dp_opintf;                          // output interface index from the DNS Proxy Client
 
     int             notifyToken;
-    int             uds_listener_skt;           // Listening socket for incoming UDS clients. This should not be here -- it's private to uds_daemon.c and nothing to do with mDNSCore -- SC
+//    int             uds_listener_skt;           // Listening socket for incoming UDS clients. This should not be here -- it's private to uds_daemon.c and nothing to do with mDNSCore -- SC
     mDNSu32         AutoTargetServices;         // # of services that have AutoTarget set
 
 #if MDNSRESPONDER_SUPPORTS(APPLE, BONJOUR_ON_DEMAND)
@@ -2648,7 +2648,7 @@ extern void    mDNS_SetupResourceRecord(AuthRecord *rr, RData *RDataStorage, mDN
 
 extern mStatus mDNS_RegisterService  (mDNS *const m, ServiceRecordSet *sr,
                                       const domainlabel *const name, const domainname *const type, const domainname *const domain,
-                                      const domainname *const host, mDNSIPPort port, RData *txtrdata, const mDNSu8 txtinfo[], mDNSu16 txtlen,
+                                      const domainname *const host, mDNSIPPort port, RData *const txtrdata, const mDNSu8 txtinfo[], mDNSu16 txtlen,
                                       AuthRecord *SubTypes, mDNSu32 NumSubTypes,
                                       mDNSInterfaceID InterfaceID, mDNSServiceCallback Callback, void *Context, mDNSu32 flags);
 extern mStatus mDNS_AddRecordToService(mDNS *const m, ServiceRecordSet *sr, ExtraResourceRecord *extra, RData *rdata, mDNSu32 ttl,  mDNSu32 flags);
@@ -2923,9 +2923,9 @@ extern void mDNS_AddDynDNSHostName(mDNS *m, const domainname *fqdn, mDNSRecordCa
 extern void mDNS_RemoveDynDNSHostName(mDNS *m, const domainname *fqdn);
 extern void mDNS_SetPrimaryInterfaceInfo(mDNS *m, const mDNSAddr *v4addr,  const mDNSAddr *v6addr, const mDNSAddr *router);
 #if !MDNSRESPONDER_SUPPORTS(APPLE, QUERIER)
-extern DNSServer *mDNS_AddDNSServer(mDNS *const m, const domainname *d, const mDNSInterfaceID interface, mDNSs32 serviceID, const mDNSAddr *addr,
-                                    const mDNSIPPort port, ScopeType scopeType, mDNSu32 timeout, mDNSBool cellIntf, mDNSBool isExpensive, mDNSBool isConstrained, mDNSBool isCLAT46,
-                                    mDNSu32 resGroupID, mDNSBool reqA, mDNSBool reqAAAA, mDNSBool reqDO);
+extern DNSServer *mDNS_AddDNSServer(mDNS *const m, const domainname *domain, const mDNSInterfaceID interface, const mDNSs32 serviceID, const mDNSAddr *addr,
+                                    const mDNSIPPort port, ScopeType scopeType, mDNSu32 timeout, mDNSBool isCell, mDNSBool isExpensive, mDNSBool isConstrained, mDNSBool isCLAT46,
+                                    mDNSu32 resGroupID, mDNSBool usableA, mDNSBool usableAAAA, mDNSBool reqDO);
 extern void PenalizeDNSServer(mDNS *const m, DNSQuestion *q, mDNSOpaque16 responseFlags);
 #endif
 extern void mDNS_AddSearchDomain(const domainname *const domain, mDNSInterfaceID InterfaceID);

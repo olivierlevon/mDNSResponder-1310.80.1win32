@@ -90,7 +90,7 @@ void LogDebug_(const char *format, ...)     LOG_HELPER_BODY(NULL, MDNS_LOG_DEBUG
 #endif
 
 #if MDNS_DEBUGMSGS
-void debugf_(const char *format, ...)       LOG_HELPER_BODY(MDNS_LOG_DEBUG)
+void debugf_(const char *format, ...)       LOG_HELPER_BODY(MDNS_LOG_CATEGORY_DEFAULT, MDNS_LOG_DEBUG)
 #endif
 
 // Log message with default "mDNSResponder" ident string at the start

@@ -83,7 +83,7 @@ typedef struct browser_t
 
 #ifdef _WIN32
 typedef unsigned int pid_t;
-typedef unsigned int socklen_t;
+//typedef unsigned int socklen_t;
 #endif
 
 #if (!defined(MAXCOMLEN))
@@ -210,7 +210,7 @@ typedef struct reply_state
 
 #define LogTimerToFD(FILE_DESCRIPTOR, MSG, T) LogToFD((FILE_DESCRIPTOR), MSG " %08X %11d  %08X %11d", (T), (T), (T)-now, (T)-now)
 
-extern int udsserver_init(dnssd_sock_t skts[], size_t count);
+extern int udsserver_init(dnssd_sock_t skts[], const size_t count);
 extern mDNSs32 udsserver_idle(mDNSs32 nextevent);
 extern void udsserver_info_dump_to_fd(int fd);
 extern void udsserver_handle_configchange(mDNS *const m);

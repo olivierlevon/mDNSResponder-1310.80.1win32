@@ -5111,7 +5111,7 @@ mDNSlocal mDNSBool uds_socket_setup(dnssd_sock_t skt)
     else
     {
         LogOperation("%3d: Listening for incoming Unix Domain Socket client requests", skt);
-        mDNSStorage.uds_listener_skt = skt;
+//        mDNSStorage.uds_listener_skt = skt;
     }
     return mDNStrue;
 }

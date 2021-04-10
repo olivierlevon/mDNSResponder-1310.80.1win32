@@ -6329,7 +6329,7 @@ mDNSexport void DisposeTCPConn(struct tcpInfo_t *tcp)
     (void) tcp;
 }
 
-mDNSexport mStatus mDNS_StartNATOperation_internal(mDNS *m, NATTraversalInfo *traversal)
+mDNSexport mStatus mDNS_StartNATOperation_internal(mDNS *const m, NATTraversalInfo *traversal)
 {
     (void) m;
     (void) traversal;
@@ -6413,7 +6413,7 @@ mDNSexport mStatus mDNS_SetSecretForDomain(mDNS *m, DomainAuthInfo *info, const 
     return mStatus_UnsupportedErr;
 }
 
-mDNSexport domainname  *uDNS_GetNextSearchDomain(mDNSInterfaceID InterfaceID, mDNSs8 *searchIndex, mDNSBool ignoreDotLocal)
+mDNSexport domainname  *uDNS_GetNextSearchDomain(mDNSInterfaceID InterfaceID, int *searchIndex, mDNSBool ignoreDotLocal)
 {
     (void) InterfaceID;
     (void) searchIndex;
