@@ -52,8 +52,7 @@
 #include	"GenLinkedList.h"
 #include	"DNSCommon.h"
 #include	"mDNSWin32.h"
-#include    "dnssec.h"
-#include    "nsec.h"
+
 
 #if 0
 #pragma mark == Constants ==
