@@ -86,6 +86,7 @@ static const char kFilePathSep = '\\';
     #ifndef HeapEnableTerminationOnCorruption
     #     define HeapEnableTerminationOnCorruption (HEAP_INFORMATION_CLASS)1
     #endif
+    #define MIN(a, b)  (((a) < (b)) ? (a) : (b))
     #if !defined(IFNAMSIZ)
      #define IFNAMSIZ 16
     #endif
@@ -1297,8 +1298,8 @@ static void HandleEvents(void)
 }
 #else
 {
-    int dns_sd_fd  = client    ? DNSServiceRefSockFD(client   ) : -1;
-    int dns_sd_fd2 = client_pa ? DNSServiceRefSockFD(client_pa) : -1;
+    dnssd_sock_t dns_sd_fd  = client    ? DNSServiceRefSockFD(client   ) : -1;
+    dnssd_sock_t dns_sd_fd2 = client_pa ? DNSServiceRefSockFD(client_pa) : -1;
     int nfds = dns_sd_fd + 1;
     fd_set readfds;
     struct timeval tv;
