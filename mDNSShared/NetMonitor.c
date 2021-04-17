@@ -25,6 +25,7 @@
 #include "../mDNSCore/mDNS.c"
 #undef mDNSCoreReceive
 
+
 //*************************************************************************************************************
 // Headers
 
@@ -37,10 +38,13 @@
 // Both mDNS.c and mDNSWin32.h declare UDPSocket_struct type resulting in a compile-time error, so
 // trick the compiler when including mDNSWin32.h
 #   define UDPSocket_struct _UDPSocket_struct
-#   include <mDNSEmbeddedAPI.h>
-#   include <mDNSWin32.h>
-#   include <PosixCompat.h>
-#   include <Poll.h>
+#   include "mDNSEmbeddedAPI.h"
+#   include "mDNSWin32.h"
+#   include "PosixCompat.h"
+#   include "Poll.h"
+#define SendARP	__NOT__SendARP__NOT__
+#   include <iphlpapi.h>
+#undef SendARP
 #   define IFNAMSIZ 256
 static HANDLE gStopEvent = INVALID_HANDLE_VALUE;
 static mDNSBool gRunning;
@@ -55,7 +59,6 @@ void setlinebuf( FILE * fp ) {}
 #   include <arpa/inet.h>       // For inet_addr()
 #   include "mDNSPosix.h"      // Defines the specific types needed to run mDNS on this platform
 #endif
-
 
 //*************************************************************************************************************
 // Types and structures
