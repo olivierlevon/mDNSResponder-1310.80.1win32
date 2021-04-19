@@ -338,7 +338,7 @@ mDNSexport mStatus	mDNSPlatformInit( mDNS * const inMDNS )
 
 	err = SetupSocket( inMDNS, (const struct sockaddr*) &sa6, zeroIPPort, &inMDNS->p->unicastSock6.fd );
 	require_action( !err || ( err == WSAEAFNOSUPPORT ), exit, err = (mStatus) WSAGetLastError() );
-	err = kNoErr;
+	err = mStatus_NoError;
 		
 	// If we weren't able to create the socket (because IPv6 hasn't been installed) don't do this
 
@@ -4129,7 +4129,7 @@ RegQueryString( HKEY key, LPCSTR valueName, LPSTR * string, DWORD * stringLen, D
 		err = RegQueryValueEx( key, TEXT("Enabled"), NULL, NULL, (LPBYTE) enabled, &dwSize );
 		check_noerr( err );
 
-		err = kNoErr;
+		err = mStatus_NoError;
 	}
 
 exit:
@@ -4582,7 +4582,7 @@ CheckFileShares( mDNS * const m )
 
 	// Only do this if we're not shutting down
 
-	require_action_quiet( m->AdvertiseLocalAddresses && !m->ShutdownTime, exit, err = kNoErr );
+	require_action_quiet( m->AdvertiseLocalAddresses && !m->ShutdownTime, exit, err = mStatus_NoError);
 
 	err = RegCreateKey( HKEY_LOCAL_MACHINE, kServiceParametersNode L"\\Services\\SMB", &key );
 
