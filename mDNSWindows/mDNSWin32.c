@@ -4317,7 +4317,7 @@ RegQueryString( HKEY key, LPCSTR valueName, LPSTR * string, DWORD * stringLen, D
 
 	if ( enabled )
 	{
-		DWORD dwSize = sizeof( DWORD );
+		DWORD dwSize = sizeof( enabled );
 
 		err = RegQueryValueEx( key, TEXT("Enabled"), NULL, NULL, (LPBYTE) enabled, &dwSize );
 		check_noerr( err );
@@ -4600,7 +4600,7 @@ mDNSlocal void GetDDNSConfig( DNameListElem ** domains, LPCSTR lpSubKey )
 			err = RegOpenKeyExA( key, subKeyName, 0, KEY_READ, &subKey );
 			require_noerr( err, exit );
 
-			dwSize = sizeof( DWORD );
+			dwSize = sizeof( enabled );
 			err = RegQueryValueExA( subKey, "Enabled", NULL, NULL, (LPBYTE) &enabled, &dwSize );
 
 			if ( !err && ( subKeyName[0] != '\0' ) && enabled )
@@ -4791,7 +4791,7 @@ CheckFileShares( mDNS * const m )
 	DWORD			entriesRead = 0;
 	DWORD			totalEntries = 0;
 	DWORD			resume = 0;
-	mDNSBool		advertise = mDNSfalse;
+	DWORD			advertise = mDNSfalse;
 	mDNSBool		fileSharing = mDNSfalse;
 	mDNSBool		printSharing = mDNSfalse;
 	HKEY			key = NULL;
@@ -4809,7 +4809,7 @@ CheckFileShares( mDNS * const m )
 
 	if ( !err )
 	{
-		DWORD dwSize = sizeof( DWORD );
+		DWORD dwSize = sizeof( advertise );
 		RegQueryValueEx( key, L"Advertise", NULL, NULL, (LPBYTE) &advertise, &dwSize );
 	}
 
