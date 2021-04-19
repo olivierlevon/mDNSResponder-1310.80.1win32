@@ -17,10 +17,7 @@
 
 #pragma once
 
-#include	"CommonServices.h"
-
 #include	<mswsock.h>
-
 
 #include	"mDNSEmbeddedAPI.h"
 #include	"uDNS.h"

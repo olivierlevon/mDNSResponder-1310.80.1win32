@@ -22,7 +22,6 @@
 #include	<stddef.h>
 
 #include	"Poll.h"
-#include	"CommonServices.h"
 #include	"DebugServices.h"
 #include	"RegNames.h"
 
@@ -1318,7 +1317,7 @@ mDNSlocal mStatus	SetupNotifications()
 	// Register to listen for address list changes.
 	
 	sock = socket( AF_INET, SOCK_DGRAM, IPPROTO_UDP );
-	err = translate_errno( IsValidSocket( sock ), errno_compat(), kUnknownErr );
+	err = translate_errno( sock != INVALID_SOCKET, WSAGetLastError(), kUnknownErr );
 	require_noerr( err, exit );
 	gInterfaceListChangedSocket = sock;
 	
@@ -1327,7 +1326,7 @@ mDNSlocal mStatus	SetupNotifications()
 	
 	param = 1;
 	err = ioctlsocket( sock, FIONBIO, &param );
-	err = translate_errno( err == 0, errno_compat(), kUnknownErr );
+	err = translate_errno( err == 0, WSAGetLastError(), kUnknownErr );
 	require_noerr( err, exit );
 	
 	inBuffer	= 0;
@@ -1335,7 +1334,7 @@ mDNSlocal mStatus	SetupNotifications()
 	err = WSAIoctl( sock, SIO_ADDRESS_LIST_CHANGE, &inBuffer, 0, &outBuffer, 0, &outSize, NULL, NULL );
 	if( err < 0 )
 	{
-		check( errno_compat() == WSAEWOULDBLOCK );
+		check( WSAGetLastError() == WSAEWOULDBLOCK );
 	}
 
 	err = mDNSPollRegisterSocket( sock, FD_ADDRESS_LIST_CHANGE, InterfaceListNotification, NULL );
@@ -1346,7 +1345,7 @@ mDNSlocal mStatus	SetupNotifications()
 	require_noerr( err, exit );
 
 	err = RegOpenKeyEx( HKEY_LOCAL_MACHINE, TEXT("SYSTEM\\CurrentControlSet\\Services\\lanmanserver\\parameters"), 0, KEY_READ, &gDescKey);
-	check_translated_errno( err == 0, errno_compat(), kNameErr );
+	check_translated_errno( err == 0, GetLastError(), kNameErr );
 
 	if ( gDescKey != NULL )
 	{
@@ -1471,11 +1470,11 @@ exit:
 
 mDNSlocal mStatus	TearDownNotifications()
 {
-	if( IsValidSocket( gInterfaceListChangedSocket ) )
+	if( gInterfaceListChangedSocket != INVALID_SOCKET )
 	{
 		mDNSPollUnregisterSocket( gInterfaceListChangedSocket );
 
-		close_compat( gInterfaceListChangedSocket );
+		closesocket( gInterfaceListChangedSocket );
 		gInterfaceListChangedSocket = INVALID_SOCKET;
 	}
 
@@ -1692,7 +1691,7 @@ InterfaceListNotification( SOCKET socket, LPWSANETWORKEVENTS event, void *contex
 	err = WSAIoctl( gInterfaceListChangedSocket, SIO_ADDRESS_LIST_CHANGE, &inBuffer, 0, &outBuffer, 0, &outSize, NULL, NULL );
 	if( err < 0 )
 	{
-		check( errno_compat() == WSAEWOULDBLOCK );
+		check( WSAGetLastError() == WSAEWOULDBLOCK );
 	}
 }
 
