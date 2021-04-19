@@ -251,9 +251,13 @@ int	Main( int argc, LPTSTR argv[] )
 				goto exit;
 			}
 		}
-		else if( StrCmp( argv[ i ], TEXT("-start") ) == 0 )		// Start
+		else if( StrCmp( argv[ i ], TEXT("-start") ) == 0 )		    // Start
 		{
 			start = TRUE;
+		}
+		else if (StrCmp(argv[i], TEXT("-q")) == 0)			        // Quiet Mode (toggle)
+		{
+			gServiceQuietMode = !gServiceQuietMode;
 		}
 		else if( StrCmp( argv[ i ], TEXT("-server") ) == 0 )		// Server
 		{
@@ -263,10 +267,6 @@ int	Main( int argc, LPTSTR argv[] )
 				ReportStatus( EVENTLOG_ERROR_TYPE, "run service directly failed (%d)\n", err );
 			}
 			goto exit;
-		}
-		else if( StrCmp( argv[ i ], TEXT("-q") ) == 0 )			// Quiet Mode (toggle)
-		{
-			gServiceQuietMode = !gServiceQuietMode;
 		}
 		else if( ( StrCmp( argv[ i ], TEXT("-help") ) == 0 ) || 	// Help
 				 ( StrCmp( argv[ i ], TEXT("-h") ) == 0 ) )
