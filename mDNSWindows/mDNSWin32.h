@@ -53,7 +53,6 @@ struct UDPSocket_struct
 											// dstAddr from WSARecvMsg we use this value instead.
 	SOCKET						fd;
 	LPFN_WSARECVMSG				recvMsgPtr;
-	DNSMessage					packet;
 	struct mDNSInterfaceData	*ifd;
 	UDPSocket					*next;
 	mDNS						*m;
