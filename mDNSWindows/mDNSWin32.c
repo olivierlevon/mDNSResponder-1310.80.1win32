@@ -72,7 +72,11 @@
 static GUID											kWSARecvMsgGUID = WSAID_WSARECVMSG;
 
 #define kIPv6IfIndexBase							(10000000L)
+
+#ifdef REG_SERVICES_ENABLED
 #define SMBPortAsNumber								445
+#endif
+
 #define DEVICE_PREFIX								"\\\\.\\"
 
 #if 0
@@ -157,8 +161,12 @@ mDNSlocal void				GetDDNSFQDN( domainname *const fqdn );
 mDNSlocal void				GetDDNSDomains( DNameListElem ** domains, LPCWSTR lpSubKey );
 mDNSlocal void				SetDomainSecrets( mDNS * const inMDNS );
 mDNSlocal void				SetDomainSecret( mDNS * const m, const domainname * inDomain );
+
+#ifdef REG_SERVICES_ENABLED
 mDNSlocal VOID CALLBACK		CheckFileSharesProc( LPVOID arg, DWORD dwTimerLowValue, DWORD dwTimerHighValue );
 mDNSlocal void				CheckFileShares( mDNS * const inMDNS );
+#endif
+
 mDNSlocal mDNSu8			IsWOMPEnabledForAdapter( const char * adapterName );
 mDNSlocal void				SendWakeupPacket( mDNS * const inMDNS, LPSOCKADDR addr, INT addrlen, const char * buf, INT buflen, INT numTries, INT msecSleep );
 mDNSlocal void _cdecl		SendMulticastWakeupPacket( void *arg );
@@ -198,6 +206,7 @@ extern mDNS mDNSStorage;
 #endif
 
 
+#ifdef REG_SERVICES_ENABLED
 typedef DNSServiceErrorType ( DNSSD_API *DNSServiceRegisterFunc )
     (
     DNSServiceRef                       *sdRef,
@@ -214,7 +223,6 @@ typedef DNSServiceErrorType ( DNSSD_API *DNSServiceRegisterFunc )
     void                                *context       /* may be NULL */
     );
 
-
 typedef void ( DNSSD_API *DNSServiceRefDeallocateFunc )( DNSServiceRef sdRef );
 
 mDNSlocal HMODULE					gDNSSDLibrary				= NULL;
@@ -229,6 +237,8 @@ mDNSlocal HANDLE					gSMBThreadQuitEvent			= NULL;
 #define	kSMBStopEvent				( WAIT_OBJECT_0 + 0 )
 #define	kSMBRegisterEvent			( WAIT_OBJECT_0 + 1 )
 #define kSMBDeregisterEvent			( WAIT_OBJECT_0 + 2 )
+#endif
+
 
 #if 0
 #pragma mark -
@@ -259,9 +269,12 @@ mDNSexport mStatus	mDNSPlatformInit( mDNS * const inMDNS )
 	if( !inMDNS->p ) inMDNS->p				= &gMDNSPlatformSupport;
 	inMDNS->p->mainThread					= OpenThread( THREAD_ALL_ACCESS, FALSE, GetCurrentThreadId() );
 	require_action( inMDNS->p->mainThread, exit, err = mStatus_UnknownErr );
+
+#ifdef REG_SERVICES_ENABLED
 	inMDNS->p->checkFileSharesTimer = CreateWaitableTimer( NULL, FALSE, NULL );
 	require_action( inMDNS->p->checkFileSharesTimer, exit, err = mStatus_UnknownErr );
 	inMDNS->p->checkFileSharesTimeout		= 10;		// Retry time for CheckFileShares() in seconds
+#endif
 	
 	// Startup WinSock 2.2 or later.
 	
@@ -394,6 +407,7 @@ mDNSexport void	mDNSPlatformClose( mDNS * const inMDNS )
 	dlog( kDebugLevelTrace, DEBUG_NAME "platform close\n" );
 	check( inMDNS );
 
+#ifdef REG_SERVICES_ENABLED
 	if ( gSMBThread != NULL )
 	{
 		dlog( kDebugLevelTrace, DEBUG_NAME "tearing down smb registration thread\n" );
@@ -439,6 +453,7 @@ mDNSexport void	mDNSPlatformClose( mDNS * const inMDNS )
 		inMDNS->p->smbFileSharing = mDNSfalse;
 		inMDNS->p->smbPrintSharing = mDNSfalse;
 	}
+#endif
 
 	// Tear everything down in reverse order to how it was set up.
 	
@@ -2520,7 +2535,10 @@ mStatus	SetupInterfaceList( mDNS * const inMDNS )
 		next  = &ifd->next;
 	}
 
+#ifdef REG_SERVICES_ENABLED
 	CheckFileShares( inMDNS );
+#endif
+
 
 exit:
 	if( err )
@@ -3290,6 +3308,7 @@ void DynDNSConfigDidChange( mDNS * const inMDNS )
 	check_noerr( err );
 }
 
+#ifdef REG_SERVICES_ENABLED
 //===========================================================================================================================
 //	FileSharingDidChange
 //===========================================================================================================================
@@ -3300,6 +3319,7 @@ void FileSharingDidChange( mDNS * const inMDNS )
 
 	CheckFileShares( inMDNS );
 }
+#endif
 
 //===========================================================================================================================
 //	FilewallDidChange
@@ -3309,7 +3329,9 @@ void FirewallDidChange( mDNS * const inMDNS )
 	dlog( kDebugLevelInfo, DEBUG_NAME "Firewall has changed\n" );
 	check( inMDNS );
 
+#ifdef REG_SERVICES_ENABLED
 	CheckFileShares( inMDNS );
+#endif
 }
 
 #if 0
@@ -4464,6 +4486,8 @@ exit:
 	return;
 }
 
+
+#ifdef REG_SERVICES_ENABLED
 mDNSlocal VOID CALLBACK
 CheckFileSharesProc( LPVOID arg, DWORD dwTimerLowValue, DWORD dwTimerHighValue )
 {
@@ -4715,6 +4739,8 @@ exit:
 		RegCloseKey( key );
 	}
 }
+#endif
+
 
 BOOL
 IsWOMPEnabled( mDNS * const m )

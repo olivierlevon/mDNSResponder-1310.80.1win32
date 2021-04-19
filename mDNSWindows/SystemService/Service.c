@@ -115,9 +115,11 @@ static void CALLBACK	InterfaceListNotification( SOCKET socket, LPWSANETWORKEVENT
 static void CALLBACK	ComputerDescriptionNotification( HANDLE event, void *context );
 static void CALLBACK	TCPChangedNotification( HANDLE event, void *context );
 static void CALLBACK	DDNSChangedNotification( HANDLE event, void *context );
+#ifdef REG_SERVICES_ENABLED
 static void CALLBACK	FileSharingChangedNotification( HANDLE event, void *context );
-static void CALLBACK	FirewallChangedNotification( HANDLE event, void *context );
 static void CALLBACK	AdvertisedServicesChangedNotification( HANDLE event, void *context );
+#endif
+static void CALLBACK	FirewallChangedNotification( HANDLE event, void *context );
 static void CALLBACK	SPSWakeupNotification( HANDLE event, void *context );
 static void	CALLBACK	SPSSleepNotification( HANDLE event, void *context );
 static void CALLBACK	UDSAcceptNotification( SOCKET sock, LPWSANETWORKEVENTS event, void *context );
@@ -155,12 +157,14 @@ DEBUG_LOCAL HKEY						gTcpipKey					= NULL;
 DEBUG_LOCAL HANDLE						gTcpipChangedEvent			= NULL;	// TCP/IP config changed
 DEBUG_LOCAL HKEY						gDdnsKey					= NULL;
 DEBUG_LOCAL HANDLE						gDdnsChangedEvent			= NULL;	// DynDNS config changed
+#ifdef REG_SERVICES_ENABLED
 DEBUG_LOCAL HKEY						gFileSharingKey				= NULL;
 DEBUG_LOCAL HANDLE						gFileSharingChangedEvent	= NULL;	// File Sharing changed
-DEBUG_LOCAL HKEY						gFirewallKey				= NULL;
-DEBUG_LOCAL HANDLE						gFirewallChangedEvent		= NULL;	// Firewall changed
 DEBUG_LOCAL HKEY						gAdvertisedServicesKey		= NULL;
 DEBUG_LOCAL HANDLE						gAdvertisedServicesChangedEvent	= NULL; // Advertised services changed
+#endif
+DEBUG_LOCAL HKEY						gFirewallKey				= NULL;
+DEBUG_LOCAL HANDLE						gFirewallChangedEvent		= NULL;	// Firewall changed
 DEBUG_LOCAL SERVICE_STATUS				gServiceStatus;
 DEBUG_LOCAL SERVICE_STATUS_HANDLE		gServiceStatusHandle 	= NULL;
 DEBUG_LOCAL HANDLE						gServiceEventSource		= NULL;
@@ -1380,6 +1384,7 @@ mDNSlocal mStatus	SetupNotifications()
 	err = mDNSPollRegisterEvent( gDdnsChangedEvent, DDNSChangedNotification, NULL );
 	require_noerr( err, exit );
 
+#ifdef REG_SERVICES_ENABLED
 	// This will catch all changes to file sharing
 
 	gFileSharingChangedEvent = CreateEvent( NULL, FALSE, FALSE, NULL );
@@ -1404,6 +1409,19 @@ mDNSlocal mStatus	SetupNotifications()
 		err = mStatus_NoError;
 	}
 
+	// This will catch all changes to advertised services configuration
+
+	gAdvertisedServicesChangedEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+	err = translate_errno( gAdvertisedServicesChangedEvent, (mStatus) GetLastError(), kUnknownErr );
+	require_noerr( err, exit );
+	err = RegCreateKey( HKEY_LOCAL_MACHINE, kServiceParametersNode TEXT("\\Services"), &gAdvertisedServicesKey );
+	require_noerr( err, exit );
+	err = RegNotifyChangeKeyValue( gAdvertisedServicesKey, TRUE, REG_NOTIFY_CHANGE_NAME|REG_NOTIFY_CHANGE_LAST_SET, gAdvertisedServicesChangedEvent, TRUE);
+	require_noerr( err, exit );
+	err = mDNSPollRegisterEvent( gAdvertisedServicesChangedEvent, AdvertisedServicesChangedNotification, NULL );
+	require_noerr( err, exit );
+#endif
+
 	// This will catch changes to the Windows firewall
 
 	gFirewallChangedEvent = CreateEvent( NULL, FALSE, FALSE, NULL );
@@ -1427,18 +1445,6 @@ mDNSlocal mStatus	SetupNotifications()
 	{
 		err = mStatus_NoError;
 	}
-
-	// This will catch all changes to advertised services configuration
-
-	gAdvertisedServicesChangedEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-	err = translate_errno( gAdvertisedServicesChangedEvent, (mStatus) GetLastError(), kUnknownErr );
-	require_noerr( err, exit );
-	err = RegCreateKey( HKEY_LOCAL_MACHINE, kServiceParametersNode TEXT("\\Services"), &gAdvertisedServicesKey );
-	require_noerr( err, exit );
-	err = RegNotifyChangeKeyValue( gAdvertisedServicesKey, TRUE, REG_NOTIFY_CHANGE_NAME|REG_NOTIFY_CHANGE_LAST_SET, gAdvertisedServicesChangedEvent, TRUE);
-	require_noerr( err, exit );
-	err = mDNSPollRegisterEvent( gAdvertisedServicesChangedEvent, AdvertisedServicesChangedNotification, NULL );
-	require_noerr( err, exit );
 
 	// SPSWakeup timer
 
@@ -1511,6 +1517,7 @@ mDNSlocal mStatus	TearDownNotifications()
 		gDdnsKey = NULL;
 	}
 
+#ifdef REG_SERVICES_ENABLED
 	if ( gFileSharingChangedEvent != NULL )
 	{
 		mDNSPollUnregisterEvent( gFileSharingChangedEvent );
@@ -1524,19 +1531,6 @@ mDNSlocal mStatus	TearDownNotifications()
 		gFileSharingKey = NULL;
 	}
 
-	if ( gFirewallChangedEvent != NULL )
-	{
-		mDNSPollUnregisterEvent( gFirewallChangedEvent );
-		CloseHandle( gFirewallChangedEvent );
-		gFirewallChangedEvent = NULL;
-	}
-
-	if ( gFirewallKey != NULL )
-	{
-		RegCloseKey( gFirewallKey );
-		gFirewallKey = NULL;
-	}
-
 	if ( gAdvertisedServicesChangedEvent != NULL )
 	{
 		mDNSPollUnregisterEvent( gAdvertisedServicesChangedEvent );
@@ -1548,6 +1542,20 @@ mDNSlocal mStatus	TearDownNotifications()
 	{
 		RegCloseKey( gAdvertisedServicesKey );
 		gAdvertisedServicesKey = NULL;
+	}
+#endif
+
+	if ( gFirewallChangedEvent != NULL )
+	{
+		mDNSPollUnregisterEvent( gFirewallChangedEvent );
+		CloseHandle( gFirewallChangedEvent );
+		gFirewallChangedEvent = NULL;
+	}
+
+	if ( gFirewallKey != NULL )
+	{
+		RegCloseKey( gFirewallKey );
+		gFirewallKey = NULL;
 	}
 
 	if ( gSPSWakeupEvent )
@@ -1758,6 +1766,7 @@ DDNSChangedNotification( HANDLE event, void *context )
 }
 
 
+#ifdef REG_SERVICES_ENABLED
 mDNSlocal void CALLBACK
 FileSharingChangedNotification( HANDLE event, void *context )
 {
@@ -1773,26 +1782,6 @@ FileSharingChangedNotification( HANDLE event, void *context )
 	if ((gFileSharingKey != NULL) && (gFileSharingChangedEvent))
 	{
 		int err = RegNotifyChangeKeyValue(gFileSharingKey, TRUE, REG_NOTIFY_CHANGE_NAME|REG_NOTIFY_CHANGE_LAST_SET, gFileSharingChangedEvent, TRUE);
-		check_noerr( err );
-	}
-}
-
-
-mDNSlocal void CALLBACK
-FirewallChangedNotification( HANDLE event, void *context )
-{
-	// Firewall configuration changed
-
-	DEBUG_UNUSED( event );
-	DEBUG_UNUSED( context );
-
-	FirewallDidChange( &gMDNSRecord );
-
-	// and reset the event handler
-
-	if ((gFirewallKey != NULL) && (gFirewallChangedEvent))
-	{
-		int err = RegNotifyChangeKeyValue(gFirewallKey, TRUE, REG_NOTIFY_CHANGE_NAME|REG_NOTIFY_CHANGE_LAST_SET, gFirewallChangedEvent, TRUE);
 		check_noerr( err );
 	}
 }
@@ -1817,6 +1806,29 @@ AdvertisedServicesChangedNotification( HANDLE event, void *context )
 		check_noerr( err );
 	}
 }
+#endif
+
+
+mDNSlocal void CALLBACK
+FirewallChangedNotification( HANDLE event, void *context )
+{
+	// Firewall configuration changed
+
+	DEBUG_UNUSED( event );
+	DEBUG_UNUSED( context );
+
+	FirewallDidChange( &gMDNSRecord );
+
+	// and reset the event handler
+
+	if ((gFirewallKey != NULL) && (gFirewallChangedEvent))
+	{
+		int err = RegNotifyChangeKeyValue(gFirewallKey, TRUE, REG_NOTIFY_CHANGE_NAME|REG_NOTIFY_CHANGE_LAST_SET, gFirewallChangedEvent, TRUE);
+		check_noerr( err );
+	}
+}
+
+
 
 
 mDNSlocal void CALLBACK

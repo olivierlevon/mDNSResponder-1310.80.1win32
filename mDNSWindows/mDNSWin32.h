@@ -88,20 +88,25 @@ typedef void		(*ReportStatusFunc)(int inType, const char *inFormat, ...);
 struct	mDNS_PlatformSupport_struct
 {
 	HANDLE						mainThread;
-	HANDLE						checkFileSharesTimer;
-	mDNSs32						checkFileSharesTimeout;
+
 	ReportStatusFunc			reportStatusFunc;
 	time_t						nextDHCPLeaseExpires;
 	char						nbname[ 32 ];
 	char						nbdomain[ 32 ];
-	mDNSBool					smbFileSharing;
-	mDNSBool					smbPrintSharing;
-	AuthRecord					smbSubTypes[ 2 ];
+
 	mDNSBool					registeredLoopback4;
 	mDNSInterfaceData *			interfaceList;
 	mDNSInterfaceData *			inactiveInterfaceList;
 	struct UDPSocket_struct		unicastSock4;
 	struct UDPSocket_struct		unicastSock6;
+#ifdef REG_SERVICES_ENABLED
+	HANDLE						checkFileSharesTimer;
+	mDNSs32						checkFileSharesTimeout;
+
+	mDNSBool					smbFileSharing;
+	mDNSBool					smbPrintSharing;
+	AuthRecord					smbSubTypes[ 2 ];
+#endif
 };
 
 //---------------------------------------------------------------------------------------------------------------------------
@@ -137,7 +142,9 @@ extern void		InterfaceListDidChange( mDNS * const inMDNS );
 extern void		ComputerDescriptionDidChange( mDNS * const inMDNS );
 extern void		TCPIPConfigDidChange( mDNS * const inMDNS );
 extern void		DynDNSConfigDidChange( mDNS * const inMDNS );
+#ifdef REG_SERVICES_ENABLED
 extern void		FileSharingDidChange( mDNS * const inMDNS );
+#endif
 extern void		FirewallDidChange( mDNS * const inMDNS );
 extern mStatus	SetupInterfaceList( mDNS * const inMDNS );
 extern mStatus	TearDownInterfaceList( mDNS * const inMDNS );
