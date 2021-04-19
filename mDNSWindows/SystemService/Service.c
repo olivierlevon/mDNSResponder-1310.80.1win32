@@ -169,7 +169,6 @@ DEBUG_LOCAL HANDLE						gSPSWakeupEvent			= NULL;
 DEBUG_LOCAL HANDLE						gSPSSleepEvent			= NULL;
 DEBUG_LOCAL SocketRef					gUDSSocket				= 0;
 DEBUG_LOCAL udsEventCallback			gUDSCallback			= NULL;
-DEBUG_LOCAL BOOL						gRetryFirewall			= FALSE;
 
 
 #if 0
@@ -1033,11 +1032,6 @@ static OSStatus	ServiceRun( int argc, LPTSTR argv[] )
 	
 	err = CheckFirewall();
 	check_noerr( err );
-
-	if ( err )
-	{
-		gRetryFirewall = TRUE;
-	}
 	
 	// Run the service-specific stuff. This does not return until the service quits or is stopped.
 
