@@ -1476,7 +1476,7 @@ mDNSlocal mStatus	TearDownNotifications()
 		mDNSPollUnregisterSocket( gInterfaceListChangedSocket );
 
 		close_compat( gInterfaceListChangedSocket );
-		gInterfaceListChangedSocket = kInvalidSocketRef;
+		gInterfaceListChangedSocket = INVALID_SOCKET;
 	}
 
 	if ( gDescChangedEvent != NULL )
@@ -1879,7 +1879,7 @@ UDSAcceptNotification( SOCKET sock, LPWSANETWORKEVENTS event, void *context )
 	
 	if ( gUDSCallback )
 	{
-		gUDSCallback( ( int ) gUDSSocket, context );
+		gUDSCallback( gUDSSocket, context );
 	}
 }
 
@@ -1898,7 +1898,7 @@ UDSReadNotification( SOCKET sock, LPWSANETWORKEVENTS event, void *context )
 
 	if ( tcpSock )
 	{
-		tcpSock->userCallback( ( int ) tcpSock->fd, 0, tcpSock->userContext );
+		tcpSock->userCallback( tcpSock->fd, 0, tcpSock->userContext );
 	}
 }
 
@@ -1908,7 +1908,7 @@ UDSReadNotification( SOCKET sock, LPWSANETWORKEVENTS event, void *context )
 //===========================================================================================================================
 
 mStatus
-udsSupportAddFDToEventLoop( SocketRef fd, udsEventCallback callback, void *context, void **platform_data)
+udsSupportAddFDToEventLoop( dnssd_sock_t fd, udsEventCallback callback, void *context, void **platform_data)
 {
 	mStatus err = mStatus_NoError;
 
@@ -1924,7 +1924,7 @@ udsSupportAddFDToEventLoop( SocketRef fd, udsEventCallback callback, void *conte
 		require_action( sock, exit, err = mStatus_NoMemoryErr );
 		mDNSPlatformMemZero( sock, sizeof( TCPSocket ) );
 
-		sock->fd				= (SOCKET) fd;
+		sock->fd				= fd;
 		sock->userCallback		= callback;
 		sock->userContext		= context;
 		sock->m					= &gMDNSRecord;
@@ -1950,7 +1950,7 @@ exit:
 
 
 int
-udsSupportReadFD( SocketRef fd, char *buf, int len, int flags, void *platform_data )
+udsSupportReadFD( dnssd_sock_t fd, char *buf, int len, int flags, void *platform_data )
 {
 	TCPSocket	*	sock;
 	mDNSBool		closed;
@@ -1984,7 +1984,7 @@ exit:
 
 
 mStatus
-udsSupportRemoveFDFromEventLoop( SocketRef fd, void *platform_data)		// Note: This also CLOSES the socket
+udsSupportRemoveFDFromEventLoop( dnssd_sock_t fd, void *platform_data)		// Note: This also CLOSES the socket
 {
 	mStatus err = kNoErr;
 
