@@ -1683,7 +1683,7 @@ mDNSexport void
 mDNSPlatformDynDNSHostNameStatusChanged(const domainname *const dname, const mStatus status)
 {
 	char		uname[MAX_ESCAPED_DOMAIN_NAME];
-	BYTE		bStatus;
+	DWORD		bStatus;
 	LPCTSTR		name;
 	HKEY		key = NULL;
 	mStatus		err;
