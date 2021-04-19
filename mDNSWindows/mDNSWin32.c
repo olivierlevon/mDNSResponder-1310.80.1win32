@@ -3137,7 +3137,7 @@ mDNSlocal void CALLBACK
 UDPSocketNotification( SOCKET sock, LPWSANETWORKEVENTS event, void *context )
 {
 	UDPSocket				*udpSock = ( UDPSocket* ) context;
-	WSAMSG					wmsg;
+	WSAMSG					wmsg = { 0 };
 	WSABUF					wbuf;
 	struct sockaddr_storage	sockSrcAddr;		// This is filled in by the WSARecv* function
 	INT						sockSrcAddrLen;		// See above
