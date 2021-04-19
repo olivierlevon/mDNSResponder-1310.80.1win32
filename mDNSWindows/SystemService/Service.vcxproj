@@ -147,7 +147,7 @@
       <ExceptionHandling>
       </ExceptionHandling>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <SmallerTypeCheck>true</SmallerTypeCheck>
+      <SmallerTypeCheck>false</SmallerTypeCheck>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <BufferSecurityCheck>true</BufferSecurityCheck>
       <PrecompiledHeader>
@@ -195,7 +195,7 @@
       <ExceptionHandling>
       </ExceptionHandling>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <SmallerTypeCheck>true</SmallerTypeCheck>
+      <SmallerTypeCheck>false</SmallerTypeCheck>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <BufferSecurityCheck>true</BufferSecurityCheck>
       <PrecompiledHeader>
@@ -235,7 +235,7 @@
       <ExceptionHandling>
       </ExceptionHandling>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <SmallerTypeCheck>true</SmallerTypeCheck>
+      <SmallerTypeCheck>false</SmallerTypeCheck>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <BufferSecurityCheck>true</BufferSecurityCheck>
       <PrecompiledHeader>
@@ -275,7 +275,7 @@
       <ExceptionHandling>
       </ExceptionHandling>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <SmallerTypeCheck>true</SmallerTypeCheck>
+      <SmallerTypeCheck>false</SmallerTypeCheck>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <BufferSecurityCheck>true</BufferSecurityCheck>
       <PrecompiledHeader>

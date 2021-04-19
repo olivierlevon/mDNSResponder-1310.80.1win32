@@ -141,12 +141,6 @@
 					Stop	= "both"
 					Remove	= "uninstall"
 					Wait	= "yes" />
-				<RegistryValue
-					Name	= "ManageLLRouting"
-					Root	= "HKLM"
-					Key		= "SYSTEM\CurrentControlSet\Services\Bonjour Service\Parameters"
-					Type	= "integer"
-					Value	= "1" />
 				<RegistryKey
 					Root	= "HKLM"
 					Key		= "SOFTWARE\Apple Inc.\Bonjour"

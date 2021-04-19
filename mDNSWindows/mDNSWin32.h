@@ -15,14 +15,12 @@
  * limitations under the License.
  */
 
-#ifndef	__MDNS_WIN32__
-#define	__MDNS_WIN32__
+#pragma once
 
 #include	"CommonServices.h"
 
-#if( !defined( _WIN32_WCE ) )
-	#include	<mswsock.h>
-#endif
+#include	<mswsock.h>
+
 
 #include	"mDNSEmbeddedAPI.h"
 #include	"uDNS.h"
@@ -101,16 +99,12 @@ struct	mDNS_PlatformSupport_struct
 	char						nbdomain[ 32 ];
 	mDNSBool					smbFileSharing;
 	mDNSBool					smbPrintSharing;
-	ServiceRecordSet			smbSRS;
 	AuthRecord					smbSubTypes[ 2 ];
 	mDNSBool					registeredLoopback4;
-	int							interfaceCount;
 	mDNSInterfaceData *			interfaceList;
 	mDNSInterfaceData *			inactiveInterfaceList;
 	struct UDPSocket_struct		unicastSock4;
 	struct UDPSocket_struct		unicastSock6;
-	DWORD						osMajorVersion;
-	DWORD						osMinorVersion;
 };
 
 //---------------------------------------------------------------------------------------------------------------------------
@@ -148,7 +142,6 @@ extern void		TCPIPConfigDidChange( mDNS * const inMDNS );
 extern void		DynDNSConfigDidChange( mDNS * const inMDNS );
 extern void		FileSharingDidChange( mDNS * const inMDNS );
 extern void		FirewallDidChange( mDNS * const inMDNS );
-extern mStatus  TCPAddSocket( mDNS * const inMDNS, TCPSocket *sock );
 extern mStatus	SetupInterfaceList( mDNS * const inMDNS );
 extern mStatus	TearDownInterfaceList( mDNS * const inMDNS );
 extern BOOL		IsWOMPEnabled( mDNS * const m );
@@ -157,5 +150,3 @@ extern BOOL		IsWOMPEnabled( mDNS * const m );
 #ifdef	__cplusplus
 	}
 #endif
-
-#endif	// __MDNS_WIN32__

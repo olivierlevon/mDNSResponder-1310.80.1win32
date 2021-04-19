@@ -65,11 +65,7 @@
 #define	DEBUG_NAME							"[mDNSWin32] "
 #define kServiceFirewallName				L"Bonjour"
 #define	kServiceDependencies				TEXT("Tcpip\0\0")
-#define	kDNSServiceCacheEntryCountDefault	512
 #define kRetryFirewallPeriod				30 * 1000
-#define kDefValueSize						MAX_PATH + 1
-#define kZeroIndex							0
-#define kDefaultRouteMetric					399
 #define kSecondsTo100NSUnits				( 10 * 1000 * 1000 )
 #define kSPSMaintenanceWakePeriod			-30
 #define kWaitToRetry						(60 * 5)
@@ -129,14 +125,7 @@ static void CALLBACK	UDSAcceptNotification( SOCKET sock, LPWSANETWORKEVENTS even
 static void CALLBACK	UDSReadNotification( SOCKET sock, LPWSANETWORKEVENTS event, void *context );
 static void				CoreCallback(mDNS * const inMDNS, mStatus result);
 static mDNSu8			SystemWakeForNetworkAccess( LARGE_INTEGER * timeout );
-static OSStatus			GetRouteDestination(DWORD * ifIndex, DWORD * address);
-static OSStatus			SetLLRoute( mDNS * const inMDNS );
-static bool				HaveRoute( PMIB_IPFORWARDROW rowExtant, unsigned long addr, unsigned long metric );
-static bool				IsValidAddress( const char * addr );
-static bool				IsNortelVPN( IP_ADAPTER_INFO * pAdapter );
-static bool				IsJuniperVPN( IP_ADAPTER_INFO * pAdapter );
-static bool				IsCiscoVPN( IP_ADAPTER_INFO * pAdapter );
-static const char *		strnistr( const char * string, const char * subString, size_t max );
+
 
 #if defined(UNICODE)
 #	define StrLen(X)	wcslen(X)
@@ -145,10 +134,6 @@ static const char *		strnistr( const char * string, const char * subString, size
 #	define StrLen(X)	strlen(X)
 #	define StrCmp(X,Y)	strcmp(X,Y)
 #endif
-
-
-#define kLLNetworkAddr      "169.254.0.0"
-#define kLLNetworkAddrMask  "255.255.0.0"
 
 
 #include	"mDNSEmbeddedAPI.h"
@@ -160,6 +145,7 @@ static const char *		strnistr( const char * string, const char * subString, size
 //===========================================================================================================================
 //	Globals
 //===========================================================================================================================
+
 #define gMDNSRecord mDNSStorage
 DEBUG_LOCAL	mDNS_PlatformSupport		gPlatformStorage;
 DEBUG_LOCAL BOOL						gServiceQuietMode		= FALSE;
@@ -188,18 +174,11 @@ DEBUG_LOCAL HANDLE						gAdvertisedServicesChangedEvent	= NULL; // Advertised se
 DEBUG_LOCAL SERVICE_STATUS				gServiceStatus;
 DEBUG_LOCAL SERVICE_STATUS_HANDLE		gServiceStatusHandle 	= NULL;
 DEBUG_LOCAL HANDLE						gServiceEventSource		= NULL;
-DEBUG_LOCAL bool						gServiceAllowRemote		= false;
-DEBUG_LOCAL int							gServiceCacheEntryCount	= 0;	// 0 means to use the DNS-SD default.
-DEBUG_LOCAL bool						gServiceManageLLRouting = true;
 DEBUG_LOCAL HANDLE						gSPSWakeupEvent			= NULL;
 DEBUG_LOCAL HANDLE						gSPSSleepEvent			= NULL;
 DEBUG_LOCAL SocketRef					gUDSSocket				= 0;
 DEBUG_LOCAL udsEventCallback			gUDSCallback			= NULL;
 DEBUG_LOCAL BOOL						gRetryFirewall			= FALSE;
-
-typedef DWORD ( WINAPI * GetIpInterfaceEntryFunctionPtr )( PMIB_IPINTERFACE_ROW );
-mDNSlocal HMODULE								gIPHelperLibraryInstance		= NULL;
-mDNSlocal GetIpInterfaceEntryFunctionPtr		gGetIpInterfaceEntryFunctionPtr	= NULL;
 
 
 #if 0
@@ -320,8 +299,6 @@ static void	Usage( void )
 	fprintf( stderr, "    -start       Starts the service dispatcher after processing all other arguments\n" );
 	fprintf( stderr, "    -server      Runs the service directly as a server (for debugging)\n" );
 	fprintf( stderr, "    -q           Toggles Quiet Mode (no events or output)\n" );
-	fprintf( stderr, "    -remote      Allow remote connections\n" );
-	fprintf( stderr, "    -cache n     Number of mDNS cache entries (defaults to %d)\n", kDNSServiceCacheEntryCountDefault );
 	fprintf( stderr, "    -h[elp]      Display Help/Usage\n" );
 	fprintf( stderr, "\n" );
 }
@@ -477,50 +454,15 @@ exit:
 }
 
 
-
 //===========================================================================================================================
 //	SetServiceParameters
 //===========================================================================================================================
 
 static OSStatus SetServiceParameters()
 {
-	DWORD 			value;
-	DWORD			valueLen = sizeof(DWORD);
-	DWORD			type;
-	OSStatus		err;
-	HKEY			key;
 
-	key = NULL;
-
-	//
-	// Add/Open Parameters section under service entry in registry
-	//
-	err = RegCreateKey( HKEY_LOCAL_MACHINE, kServiceParametersNode, &key );
-	require_noerr( err, exit );
-	
-	//
-	// If the value isn't already there, then we create it
-	//
-	err = RegQueryValueEx(key, kServiceManageLLRouting, 0, &type, (LPBYTE) &value, &valueLen);
-
-	if (err != ERROR_SUCCESS)
-	{
-		value = 1;
-
-		err = RegSetValueEx( key, kServiceManageLLRouting, 0, REG_DWORD, (const LPBYTE) &value, sizeof(DWORD) );
-		require_noerr( err, exit );
-	}
-
-exit:
-
-	if ( key )
-	{
-		RegCloseKey( key );
-	}
-
-	return( err );
+	return kNoErr;
 }
-
 
 
 //===========================================================================================================================
@@ -529,42 +471,8 @@ exit:
 
 static OSStatus GetServiceParameters()
 {
-	DWORD 			value;
-	DWORD			valueLen;
-	DWORD			type;
-	OSStatus		err;
-	HKEY			key;
 
-	key = NULL;
-
-	//
-	// Add/Open Parameters section under service entry in registry
-	//
-	err = RegCreateKey( HKEY_LOCAL_MACHINE, kServiceParametersNode, &key );
-	require_noerr( err, exit );
-	
-	valueLen = sizeof(DWORD);
-	err = RegQueryValueEx(key, kServiceManageLLRouting, 0, &type, (LPBYTE) &value, &valueLen);
-	if (err == ERROR_SUCCESS)
-	{
-		gServiceManageLLRouting = (value) ? true : false;
-	}
-
-	valueLen = sizeof(DWORD);
-	err = RegQueryValueEx(key, kServiceCacheEntryCount, 0, &type, (LPBYTE) &value, &valueLen);
-	if (err == ERROR_SUCCESS)
-	{
-		gServiceCacheEntryCount = value;
-	}
-
-exit:
-
-	if ( key )
-	{
-		RegCloseKey( key );
-	}
-
-	return( err );
+	return kNoErr;
 }
 
 
@@ -1213,8 +1121,6 @@ static OSStatus	ServiceSpecificInitialize( int argc, LPTSTR argv[] )
 	err = udsserver_init(mDNSNULL, 0);
 	require_noerr( err, exit);
 
-	SetLLRoute( &gMDNSRecord );
-
 exit:
 	if( err != kNoErr )
 	{
@@ -1340,17 +1246,6 @@ static void	ServiceSpecificFinalize( int argc, LPTSTR argv[] )
 	//
 	TearDownNotifications();
 
-	//
-	// clean up loaded library
-	//
-
-	if( gIPHelperLibraryInstance )
-	{
-		gGetIpInterfaceEntryFunctionPtr = NULL;
-		
-		FreeLibrary( gIPHelperLibraryInstance );
-		gIPHelperLibraryInstance = NULL;
-	}
 }
 
 
@@ -1980,10 +1875,8 @@ SPSSleepNotification( HANDLE event, void *context )
 static void
 CoreCallback(mDNS * const inMDNS, mStatus status)
 {
-	if (status == mStatus_ConfigChanged)
-	{
-		SetLLRoute( inMDNS );
-	}
+	( void ) inMDNS;
+	( void ) status;
 }
 
 
@@ -2214,400 +2107,3 @@ exit:
 
 	return ok;
 }
-
-
-//===========================================================================================================================
-//	HaveRoute
-//===========================================================================================================================
-
-static bool
-HaveRoute( PMIB_IPFORWARDROW rowExtant, unsigned long addr, unsigned long metric )
-{
-	PMIB_IPFORWARDTABLE	pIpForwardTable	= NULL;
-	DWORD				dwSize			= 0;
-	BOOL				bOrder			= FALSE;
-	OSStatus			err;
-	bool				found			= false;
-	unsigned long int	i;
-
-	//
-	// Find out how big our buffer needs to be.
-	//
-	err = GetIpForwardTable(NULL, &dwSize, bOrder);
-	require_action( err == ERROR_INSUFFICIENT_BUFFER, exit, err = kUnknownErr );
-
-	//
-	// Allocate the memory for the table
-	//
-	pIpForwardTable = (PMIB_IPFORWARDTABLE) malloc( dwSize );
-	require_action( pIpForwardTable, exit, err = kNoMemoryErr );
-  
-	//
-	// Now get the table.
-	//
-	err = GetIpForwardTable(pIpForwardTable, &dwSize, bOrder);
-	require_noerr( err, exit );
-
-	//
-	// Search for the row in the table we want.
-	//
-	for ( i = 0; i < pIpForwardTable->dwNumEntries; i++)
-	{
-		if ( ( pIpForwardTable->table[i].dwForwardDest == addr ) && ( !metric || ( pIpForwardTable->table[i].dwForwardMetric1 == metric ) ) )
-		{
-			memcpy( rowExtant, &(pIpForwardTable->table[i]), sizeof(*rowExtant) );
-			found = true;
-			break;
-		}
-	}
-
-exit:
-
-	if ( pIpForwardTable != NULL ) 
-	{
-		free(pIpForwardTable);
-	}
-    
-	return found;
-}
-
-
-//===========================================================================================================================
-//	IsValidAddress
-//===========================================================================================================================
-
-static bool
-IsValidAddress( const char * addr )
-{
-	return ( addr && ( strcmp( addr, "0.0.0.0" ) != 0 ) ) ? true : false;
-}	
-
-
-//===========================================================================================================================
-//	GetAdditionalMetric
-//===========================================================================================================================
-
-static ULONG
-GetAdditionalMetric( DWORD ifIndex )
-{
-	ULONG metric = 0;
-
-	if( !gIPHelperLibraryInstance )
-	{
-		gIPHelperLibraryInstance = LoadLibrary( TEXT( "Iphlpapi" ) );
-
-		gGetIpInterfaceEntryFunctionPtr = 
-				(GetIpInterfaceEntryFunctionPtr) GetProcAddress( gIPHelperLibraryInstance, "GetIpInterfaceEntry" );
-
-		if( !gGetIpInterfaceEntryFunctionPtr )
-		{		
-			BOOL ok;
-				
-			ok = FreeLibrary( gIPHelperLibraryInstance );
-			check_translated_errno( ok, GetLastError(), kUnknownErr );
-			gIPHelperLibraryInstance = NULL;
-		}
-	}
-
-	if ( gGetIpInterfaceEntryFunctionPtr )
-	{
-		MIB_IPINTERFACE_ROW row;
-		DWORD err;
-
-		ZeroMemory( &row, sizeof( MIB_IPINTERFACE_ROW ) );
-		row.Family = AF_INET;
-		row.InterfaceIndex = ifIndex;
-		err = gGetIpInterfaceEntryFunctionPtr( &row );
-		require_noerr( err, exit );
-		metric = row.Metric + 256;
-	}
-
-exit:
-
-	return metric;
-}
-
-
-//===========================================================================================================================
-//	SetLLRoute
-//===========================================================================================================================
-
-static OSStatus
-SetLLRoute( mDNS * const inMDNS )
-{
-	OSStatus err = kNoErr;
-
-	DEBUG_UNUSED( inMDNS );
-
-	//
-	// <rdar://problem/4096464> Don't call SetLLRoute on loopback
-	// <rdar://problem/6885843> Default route on Windows 7 breaks network connectivity
-	// 
-	// Don't mess w/ the routing table on Vista and later OSes, as 
-	// they have a permanent route to link-local addresses. Otherwise,
-	// set a route to link local addresses (169.254.0.0)
-	//
-	if ( ( inMDNS->p->osMajorVersion < 6 ) && gServiceManageLLRouting && !gPlatformStorage.registeredLoopback4 )
-	{
-		DWORD				ifIndex;
-		MIB_IPFORWARDROW	rowExtant;
-		bool				addRoute;
-		MIB_IPFORWARDROW	row;
-
-		ZeroMemory(&row, sizeof(row));
-
-		err = GetRouteDestination(&ifIndex, &row.dwForwardNextHop);
-		require_noerr( err, exit );
-		row.dwForwardDest		= inet_addr(kLLNetworkAddr);
-		row.dwForwardIfIndex	= ifIndex;
-		row.dwForwardMask		= inet_addr(kLLNetworkAddrMask);
-		row.dwForwardType		= 3;
-		row.dwForwardProto		= MIB_IPPROTO_NETMGMT;
-		row.dwForwardAge		= 0;
-		row.dwForwardPolicy		= 0;
-		row.dwForwardMetric1	= 20 + GetAdditionalMetric( ifIndex );
-		row.dwForwardMetric2	= (DWORD) - 1;
-		row.dwForwardMetric3	= (DWORD) - 1;
-		row.dwForwardMetric4	= (DWORD) - 1;
-		row.dwForwardMetric5	= (DWORD) - 1;
-
-		addRoute = true;
-
-		//
-		// check to make sure we don't already have a route
-		//
-		if ( HaveRoute( &rowExtant, inet_addr( kLLNetworkAddr ), 0 ) )
-		{
-			//
-			// set the age to 0 so that we can do a memcmp.
-			//
-			rowExtant.dwForwardAge = 0;
-
-			//
-			// check to see if this route is the same as our route
-			//
-			if (memcmp(&row, &rowExtant, sizeof(row)) != 0)
-			{
-				//
-				// if it isn't then delete this entry
-				//
-				DeleteIpForwardEntry(&rowExtant);
-			}
-			else
-			{
-				//
-				// else it is, so we don't want to create another route
-				//
-				addRoute = false;
-			}
-		}
-
-		if (addRoute && row.dwForwardNextHop)
-		{
-			err = CreateIpForwardEntry(&row);
-			check_noerr( err );
-		}
-	}
-
-exit:
-
-	return ( err );
-}
-
-
-//===========================================================================================================================
-//	GetRouteDestination
-//===========================================================================================================================
-
-static OSStatus
-GetRouteDestination(DWORD * ifIndex, DWORD * address)
-{
-	struct in_addr		ia;
-	IP_ADAPTER_INFO	*	pAdapterInfo	=	NULL;
-	IP_ADAPTER_INFO	*	pAdapter		=	NULL;
-	ULONG				bufLen;
-	mDNSBool			done			=	mDNSfalse;
-	OSStatus			err;
-
-	//
-	// GetBestInterface will fail if there is no default gateway
-	// configured.  If that happens, we will just take the first
-	// interface in the list. MSDN support says there is no surefire
-	// way to manually determine what the best interface might
-	// be for a particular network address.
-	//
-	ia.s_addr	=	inet_addr(kLLNetworkAddr);
-	err			=	GetBestInterface(*(IPAddr*) &ia, ifIndex);
-
-	if (err)
-	{
-		*ifIndex = 0;
-	}
-
-	//
-	// Make an initial call to GetAdaptersInfo to get
-	// the necessary size into the bufLen variable
-	//
-	err = GetAdaptersInfo( NULL, &bufLen);
-	require_action( err == ERROR_BUFFER_OVERFLOW, exit, err = kUnknownErr );
-
-	pAdapterInfo = (IP_ADAPTER_INFO*) malloc( bufLen );
-	require_action( pAdapterInfo, exit, err = kNoMemoryErr );
-	
-	err = GetAdaptersInfo( pAdapterInfo, &bufLen);
-	require_noerr( err, exit );
-	
-	pAdapter	=	pAdapterInfo;
-	err			=	kUnknownErr;
-			
-	// <rdar://problem/3718122>
-	// <rdar://problem/5652098>
-	//
-	// Look for the Nortel VPN virtual interface, along with Juniper virtual interface.
-	//
-	// If these interfaces are active (i.e., has a non-zero IP Address),
-	// then we want to disable routing table modifications.
-
-	while (pAdapter)
-	{
-		if ( ( IsNortelVPN( pAdapter ) || IsJuniperVPN( pAdapter ) || IsCiscoVPN( pAdapter ) ) &&
-			 ( inet_addr( pAdapter->IpAddressList.IpAddress.String ) != 0 ) )
-		{
-			dlog( kDebugLevelTrace, DEBUG_NAME "disabling routing table management due to VPN incompatibility" );
-			goto exit;
-		}
-
-		pAdapter = pAdapter->Next;
-	}
-
-	while ( !done )
-	{
-		pAdapter	=	pAdapterInfo;
-		err			=	kUnknownErr;
-
-		while (pAdapter)
-		{
-			// If we don't have an interface selected, choose the first one that is of type ethernet and
-			// has a valid IP Address
-
-			if ((pAdapter->Type == MIB_IF_TYPE_ETHERNET) && ( IsValidAddress( pAdapter->IpAddressList.IpAddress.String ) ) && (!(*ifIndex) || (pAdapter->Index == (*ifIndex))))
-			{
-				*address =	inet_addr( pAdapter->IpAddressList.IpAddress.String );
-				*ifIndex =  pAdapter->Index;
-				err		 =	kNoErr;
-				break;
-			}
-		
-			pAdapter = pAdapter->Next;
-		}
-
-		// If we found the right interface, or we weren't trying to find a specific interface then we're done
-
-		if ( !err || !( *ifIndex) )
-		{
-			done = mDNStrue;
-		}
-
-		// Otherwise, try again by wildcarding the interface
-
-		else
-		{
-			*ifIndex = 0;
-		}
-	} 
-
-exit:
-
-	if ( pAdapterInfo != NULL )
-	{
-		free( pAdapterInfo );
-	}
-
-	return( err );
-}
-
-
-static bool
-IsNortelVPN( IP_ADAPTER_INFO * pAdapter )
-{
-	return ((pAdapter->Type == MIB_IF_TYPE_ETHERNET) &&
-		    (pAdapter->AddressLength == 6) &&
-		    (pAdapter->Address[0] == 0x44) &&
-		    (pAdapter->Address[1] == 0x45) &&
-		    (pAdapter->Address[2] == 0x53) &&
-		    (pAdapter->Address[3] == 0x54) &&
-		    (pAdapter->Address[4] == 0x42) &&
-			(pAdapter->Address[5] == 0x00)) ? true : false;
-}
-
-
-static bool
-IsJuniperVPN( IP_ADAPTER_INFO * pAdapter )
-{	
-	return ( strnistr( pAdapter->Description, "Juniper", sizeof( pAdapter->Description  ) ) != NULL ) ? true : false;
-}
-
-
-static bool
-IsCiscoVPN( IP_ADAPTER_INFO * pAdapter )
-{
-	return ((pAdapter->Type == MIB_IF_TYPE_ETHERNET) &&
-		    (pAdapter->AddressLength == 6) &&
-		    (pAdapter->Address[0] == 0x00) &&
-		    (pAdapter->Address[1] == 0x05) &&
-		    (pAdapter->Address[2] == 0x9a) &&
-		    (pAdapter->Address[3] == 0x3c) &&
-		    (pAdapter->Address[4] == 0x7a) &&
-			(pAdapter->Address[5] == 0x00)) ? true : false;
-}
-
-
-static const char *
-strnistr( const char * string, const char * subString, size_t max )
-{
-	size_t       subStringLen;
-	size_t       offset;
-	size_t       maxOffset;
-	size_t       stringLen;
-	const char * pPos;
-
-	if ( ( string == NULL ) || ( subString == NULL ) )
-	{
-		return string;
-	}
-
-	stringLen = ( max > strlen( string ) ) ? strlen( string ) : max;
-
-	if ( stringLen == 0 )
-	{
-		return NULL;
-	}
-	
-	subStringLen = strlen( subString );
-
-	if ( subStringLen == 0 )
-	{
-		return string;
-	}
-
-	if ( subStringLen > stringLen )
-	{
-		return NULL;
-	}
-
-	maxOffset = stringLen - subStringLen;
-	pPos      = string;
-
-	for ( offset = 0; offset <= maxOffset; offset++ )
-	{
-		if ( _strnicmp( pPos, subString, subStringLen ) == 0 )
-		{
-			return pPos;
-		}
-
-		pPos++;
-	}
-
-	return NULL;
-}
-

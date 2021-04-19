@@ -21,37 +21,22 @@
 
 #if defined(UNICODE)
 
-#	define kServiceParametersSoftware			L"SOFTWARE"
-#	define kServiceParametersAppleComputer		L"Apple Computer, Inc."
-#	define kServiceParametersBonjour			L"Bonjour"
 #	define kServiceParametersNode				L"SOFTWARE\\Apple Inc.\\Bonjour"
 #	define kServiceName							L"Bonjour Service"
 #	define kServiceDynDNSBrowseDomains			L"BrowseDomains"
 #	define kServiceDynDNSHostNames				L"HostNames"
 #	define kServiceDynDNSRegistrationDomains	L"RegistrationDomains"
-#	define kServiceDynDNSDomains				L"Domains"	// value is comma separated list of domains
-#	define kServiceDynDNSEnabled				L"Enabled"
 #	define kServiceDynDNSStatus					L"Status"
-#	define kServiceManageLLRouting				L"ManageLLRouting"
-#	define kServiceCacheEntryCount				L"CacheEntryCount"
 #	define kServiceManageFirewall				L"ManageFirewall"
-#	define kServiceAdvertisedServices			L"Services"
 
 # else
 
-#	define kServiceParametersSoftware			"SOFTWARE"
-#	define kServiceParametersAppleComputer		"Apple Computer, Inc."
-#	define kServiceParametersBonjour			"Bonjour"
 #	define kServiceParametersNode				"SOFTWARE\\Apple Inc.\\Bonjour"
 #	define kServiceName							"Bonjour Service"
 #	define kServiceDynDNSBrowseDomains			"BrowseDomains"
 #	define kServiceDynDNSHostNames				"HostNames"
 #	define kServiceDynDNSRegistrationDomains	"RegistrationDomains"
-#	define kServiceDynDNSDomains				"Domains"	// value is comma separated list of domains
-#	define kServiceDynDNSEnabled				"Enabled"
 #	define kServiceDynDNSStatus					"Status"
-#	define kServiceManageLLRouting				"ManageLLRouting"
-#	define kServiceCacheEntryCount				"CacheEntryCount"
 #	define kServiceManageFirewall				"ManageFirewall"
 
 #endif
