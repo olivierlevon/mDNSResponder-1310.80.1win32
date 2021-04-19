@@ -10570,7 +10570,11 @@ mDNSexport void mDNSCoreReceive(mDNS *const m, DNSMessage *const msg, const mDNS
     const mDNSu8 UpdR = kDNSFlag0_QR_Response | kDNSFlag0_OP_Update;
     mDNSu8 QR_OP;
     mDNSu8 *ptr = mDNSNULL;
-    mDNSBool TLS = (dstaddr == (mDNSAddr *)1);  // For debug logs: dstaddr = 0 means TCP; dstaddr = 1 means TLS
+    mDNSBool TLS;
+
+    if (!m) { LogMsg("mDNSCoreReceive ERROR m is NULL"); return; }
+
+    TLS = (dstaddr == (mDNSAddr*)1);  // For debug logs: dstaddr = 0 means TCP; dstaddr = 1 means TLS
     if (TLS) dstaddr = mDNSNULL;
 
 #ifndef UNICAST_DISABLED
@@ -10610,8 +10614,6 @@ mDNSexport void mDNSCoreReceive(mDNS *const m, DNSMessage *const msg, const mDNS
     msg->h.numAnswers     = (mDNSu16)((mDNSu16)ptr[2] << 8 | ptr[3]);
     msg->h.numAuthorities = (mDNSu16)((mDNSu16)ptr[4] << 8 | ptr[5]);
     msg->h.numAdditionals = (mDNSu16)((mDNSu16)ptr[6] << 8 | ptr[7]);
-
-    if (!m) { LogMsg("mDNSCoreReceive ERROR m is NULL"); return; }
 
     // We use zero addresses and all-ones addresses at various places in the code to indicate special values like "no address"
     // If we accept and try to process a packet with zero or all-ones source address, that could really mess things up
