@@ -127,15 +127,6 @@ static void				CoreCallback(mDNS * const inMDNS, mStatus result);
 static mDNSu8			SystemWakeForNetworkAccess( LARGE_INTEGER * timeout );
 
 
-#if defined(UNICODE)
-#	define StrLen(X)	wcslen(X)
-#	define StrCmp(X,Y)	wcscmp(X,Y)
-#else
-#	define StrLen(X)	strlen(X)
-#	define StrCmp(X,Y)	strcmp(X,Y)
-#endif
-
-
 #include	"mDNSEmbeddedAPI.h"
 
 #if 0
@@ -188,6 +179,7 @@ DEBUG_LOCAL BOOL						gRetryFirewall			= FALSE;
 //===========================================================================================================================
 //	Main
 //===========================================================================================================================
+
 int	Main( int argc, LPTSTR argv[] )
 {
 	OSStatus		err;
@@ -208,9 +200,9 @@ int	Main( int argc, LPTSTR argv[] )
 	
 	for( i = 1; i < argc; ++i )
 	{
-		if( StrCmp( argv[ i ], TEXT("-install") ) == 0 )			// Install
+		if( wcscmp( argv[ i ], TEXT("-install") ) == 0 )			// Install
 		{
-			TCHAR desc[ 256 ];
+			WCHAR desc[ 256 ];
 			
 			desc[ 0 ] = 0;
 			LoadString( GetModuleHandle( NULL ), IDS_SERVICE_DESCRIPTION, desc, sizeof( desc ) / sizeof( desc[0] ) );
@@ -221,7 +213,7 @@ int	Main( int argc, LPTSTR argv[] )
 				goto exit;
 			}
 		}
-		else if( StrCmp( argv[ i ], TEXT("-remove") ) == 0 )		// Remove
+		else if( wcscmp( argv[ i ], TEXT("-remove") ) == 0 )		// Remove
 		{
 			err = RemoveService( kServiceName );
 			if( err )
@@ -230,15 +222,15 @@ int	Main( int argc, LPTSTR argv[] )
 				goto exit;
 			}
 		}
-		else if( StrCmp( argv[ i ], TEXT("-start") ) == 0 )		    // Start
+		else if( wcscmp( argv[ i ], TEXT("-start") ) == 0 )		    // Start
 		{
 			start = TRUE;
 		}
-		else if (StrCmp(argv[i], TEXT("-q")) == 0)			        // Quiet Mode (toggle)
+		else if( wcscmp(argv[i], TEXT("-q") ) == 0 )			        // Quiet Mode (toggle)
 		{
 			gServiceQuietMode = !gServiceQuietMode;
 		}
-		else if( StrCmp( argv[ i ], TEXT("-server") ) == 0 )		// Server
+		else if( wcscmp( argv[ i ], TEXT("-server") ) == 0 )		// Server
 		{
 			err = RunDirect( argc, argv );
 			if( err )
@@ -247,8 +239,8 @@ int	Main( int argc, LPTSTR argv[] )
 			}
 			goto exit;
 		}
-		else if( ( StrCmp( argv[ i ], TEXT("-help") ) == 0 ) || 	// Help
-				 ( StrCmp( argv[ i ], TEXT("-h") ) == 0 ) )
+		else if( ( wcscmp( argv[ i ], TEXT("-help") ) == 0 ) || 	// Help
+				 ( wcscmp( argv[ i ], TEXT("-h") ) == 0 ) )
 		{
 			Usage();
 			err = 0;
@@ -344,8 +336,8 @@ static OSStatus	InstallService( LPCTSTR inName, LPCTSTR inDisplayName, LPCTSTR i
 	SC_HANDLE		scm;
 	SC_HANDLE		service;
 	BOOL			ok;
-	TCHAR			fullPath[ MAX_PATH ];
-	TCHAR *			namePtr;
+	WCHAR			fullPath[ MAX_PATH ];
+	WCHAR *			namePtr;
 	DWORD			size;
 	
 	scm		= NULL;
@@ -837,7 +829,7 @@ static OSStatus	ServiceSetupEventLogging( void )
 	HKEY				key;
 	LPCTSTR				s;
 	DWORD				typesSupported;
-	TCHAR				path[ MAX_PATH ];
+	WCHAR				path[ MAX_PATH ];
 	DWORD 				n;
 	
 	key = NULL;
@@ -852,7 +844,7 @@ static OSStatus	ServiceSetupEventLogging( void )
 
 	path[ 0 ] = '\0';
 	GetModuleFileName( NULL, path, MAX_PATH );
-	n = (DWORD) ( ( StrLen( path ) + 1 ) * sizeof( TCHAR ) );
+	n = (DWORD) ( ( wcslen( path ) + 1 ) * sizeof( WCHAR ) );
 	err = RegSetValueEx( key, TEXT("EventMessageFile"), 0, REG_EXPAND_SZ, (const LPBYTE) path, n );
 	require_noerr( err, exit );
 	

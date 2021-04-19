@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
+#pragma once
+
 //----------------------------------------------------------------------------------------
 //	Registry Constants
 //----------------------------------------------------------------------------------------
-
-#if defined(UNICODE)
 
 #	define kServiceParametersNode				L"SOFTWARE\\Apple Inc.\\Bonjour"
 #	define kServiceName							L"Bonjour Service"
@@ -29,14 +29,4 @@
 #	define kServiceDynDNSStatus					L"Status"
 #	define kServiceManageFirewall				L"ManageFirewall"
 
-# else
 
-#	define kServiceParametersNode				"SOFTWARE\\Apple Inc.\\Bonjour"
-#	define kServiceName							"Bonjour Service"
-#	define kServiceDynDNSBrowseDomains			"BrowseDomains"
-#	define kServiceDynDNSHostNames				"HostNames"
-#	define kServiceDynDNSRegistrationDomains	"RegistrationDomains"
-#	define kServiceDynDNSStatus					"Status"
-#	define kServiceManageFirewall				"ManageFirewall"
-
-#endif

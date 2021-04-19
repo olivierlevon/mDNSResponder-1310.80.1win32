@@ -13,14 +13,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-
-	To Do:
-	
-	- Get unicode name of machine for nice name instead of just the host name.
-	- Use the IPv6 Internet Connection Firewall API to allow IPv6 mDNS without manually changing the firewall.
-	- Get DNS server address(es) from Windows and provide them to the uDNS layer.
-	- Implement TCP support for truncated packets (only stubs now).	
-
 */
 
 #define _CRT_RAND_S
@@ -156,19 +148,14 @@ mDNSlocal mStatus			StringToAddress( mDNSAddr * ip, LPSTR string );
 mDNSlocal mStatus			RegQueryString( HKEY key, LPCSTR param, LPSTR * string, DWORD * stringLen, DWORD * enabled );
 mDNSlocal struct ifaddrs*	myGetIfAddrs(int refresh);
 void						myFreeIfAddrs(void);
-mDNSlocal OSStatus			TCHARtoUTF8( const TCHAR *inString, char *inBuffer, size_t inBufferSize );
-mDNSlocal OSStatus			WindowsLatin1toUTF8( const char *inString, char *inBuffer, size_t inBufferSize );
+mDNSlocal OSStatus			WCHARtoUTF8( const WCHAR *inString, char *inBuffer, size_t inBufferSize );
 mDNSlocal void CALLBACK		TCPSocketNotification( SOCKET sock, LPWSANETWORKEVENTS event, void *context );
 mDNSlocal void				TCPCloseSocket( TCPSocket * socket );
 mDNSlocal void CALLBACK		UDPSocketNotification( SOCKET sock, LPWSANETWORKEVENTS event, void *context );
 mDNSlocal void				UDPCloseSocket( UDPSocket * sock );
 mDNSlocal mStatus           SetupAddr(mDNSAddr *ip, const struct sockaddr *const sa);
 mDNSlocal void				GetDDNSFQDN( domainname *const fqdn );
-#ifdef UNICODE
 mDNSlocal void				GetDDNSDomains( DNameListElem ** domains, LPCWSTR lpSubKey );
-#else
-mDNSlocal void				GetDDNSDomains( DNameListElem ** domains, LPCSTR lpSubKey );
-#endif
 mDNSlocal void				SetDomainSecrets( mDNS * const inMDNS );
 mDNSlocal void				SetDomainSecret( mDNS * const m, const domainname * inDomain );
 mDNSlocal VOID CALLBACK		CheckFileSharesProc( LPVOID arg, DWORD dwTimerLowValue, DWORD dwTimerHighValue );
@@ -2137,7 +2124,7 @@ mStatus	SetupNiceName( mDNS * const inMDNS )
 
 	if ( !err )
 	{
-		TCHAR	desc[256];
+		WCHAR	desc[256];
 		DWORD	descSize = sizeof( desc );
 
 		// look for the computer description
@@ -2145,7 +2132,7 @@ mStatus	SetupNiceName( mDNS * const inMDNS )
 		
 		if ( !err )
 		{
-			err = TCHARtoUTF8( desc, utf8, sizeof( utf8 ) );
+			err = WCHARtoUTF8( desc, utf8, sizeof( utf8 ) );
 		}
 
 		if ( err )
@@ -2157,9 +2144,9 @@ mStatus	SetupNiceName( mDNS * const inMDNS )
 	// if we can't find it in the registry, then use the hostname of the machine
 	if ( err || ( utf8[ 0 ] == '\0' ) )
 	{
-		TCHAR hostname[256];
+		WCHAR hostname[256];
 		
-		namelen = sizeof( hostname ) / sizeof( TCHAR );
+		namelen = sizeof( hostname ) / sizeof( WCHAR );
 
 		ok = GetComputerNameExW( ComputerNamePhysicalDnsHostname, hostname, &namelen );
 		err = translate_errno( ok, (mStatus) GetLastError(), kNameErr );
@@ -2167,7 +2154,7 @@ mStatus	SetupNiceName( mDNS * const inMDNS )
 		
 		if( !err )
 		{
-			err = TCHARtoUTF8( hostname, utf8, sizeof( utf8 ) );
+			err = WCHARtoUTF8( hostname, utf8, sizeof( utf8 ) );
 		}
 
 		if ( err )
@@ -2209,7 +2196,7 @@ mStatus	SetupNiceName( mDNS * const inMDNS )
 	{
 		if ( ( joinStatus == NetSetupWorkgroupName ) || ( joinStatus == NetSetupDomainName ) )
 		{
-			err = TCHARtoUTF8( joinName, inMDNS->p->nbdomain, sizeof( inMDNS->p->nbdomain ) );
+			err = WCHARtoUTF8( joinName, inMDNS->p->nbdomain, sizeof( inMDNS->p->nbdomain ) );
 			check( !err );
 			if ( !err ) dlog( kDebugLevelInfo, DEBUG_NAME "netbios domain/workgroup \"%s\"\n", inMDNS->p->nbdomain );
 		}
@@ -4229,13 +4216,12 @@ void myFreeIfAddrs( void )
 }
 
 //===========================================================================================================================
-//	TCHARtoUTF8
+//	WCHARtoUTF8
 //===========================================================================================================================
 
 mDNSlocal OSStatus
-TCHARtoUTF8( const TCHAR *inString, char *inBuffer, size_t inBufferSize )
+WCHARtoUTF8( const WCHAR *inString, char *inBuffer, size_t inBufferSize )
 {
-#if( defined( UNICODE ) || defined( _UNICODE ) )
 	OSStatus		err;
 	int				len;
 	
@@ -4245,47 +4231,8 @@ TCHARtoUTF8( const TCHAR *inString, char *inBuffer, size_t inBufferSize )
 	
 exit:
 	return( err );
-#else
-	return( WindowsLatin1toUTF8( inString, inBuffer, inBufferSize ) );
-#endif
 }
 
-//===========================================================================================================================
-//	WindowsLatin1toUTF8
-//===========================================================================================================================
-
-mDNSlocal OSStatus
-WindowsLatin1toUTF8( const char *inString, char *inBuffer, size_t inBufferSize )
-{
-	OSStatus		err;
-	WCHAR *			utf16;
-	int				len;
-	
-	utf16 = NULL;
-	
-	// Windows doesn't support going directly from Latin-1 to UTF-8 so we have to go from Latin-1 to UTF-16 first.
-	
-	len = MultiByteToWideChar( CP_ACP, 0, inString, -1, NULL, 0 );
-	err = translate_errno( len > 0, errno_compat(), kUnknownErr );
-	require_noerr( err, exit );
-	
-	utf16 = (WCHAR *) malloc( len * sizeof( *utf16 ) );
-	require_action( utf16, exit, err = kNoMemoryErr );
-	
-	len = MultiByteToWideChar( CP_ACP, 0, inString, -1, utf16, len );
-	err = translate_errno( len > 0, errno_compat(), kUnknownErr );
-	require_noerr( err, exit );
-	
-	// Now convert the temporary UTF-16 to UTF-8.
-	
-	len = WideCharToMultiByte( CP_UTF8, 0, utf16, -1, inBuffer, (int) inBufferSize, NULL, NULL );
-	err = translate_errno( len > 0, errno_compat(), kUnknownErr );
-	require_noerr( err, exit );
-
-exit:
-	if( utf16 ) free( utf16 );
-	return( err );
-}
 
 //===========================================================================================================================
 //	TCPCloseSocket
@@ -4392,11 +4339,8 @@ exit:
 	}
 }
 
-#ifdef UNICODE
+
 mDNSlocal void GetDDNSDomains( DNameListElem ** domains, LPCWSTR lpSubKey )
-#else
-mDNSlocal void GetDDNSConfig( DNameListElem ** domains, LPCSTR lpSubKey )
-#endif
 {
 	char		subKeyName[kRegistryMaxKeyLength + 1];
 	DWORD		cSubKeys = 0;
