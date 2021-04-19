@@ -64,13 +64,15 @@
 #define	DEBUG_NAME							"[mDNSWin32] "
 #define kServiceFirewallName				L"Bonjour"
 #define	kServiceDependencies				TEXT("Tcpip\0\0")
-#define kRetryFirewallPeriod				30 * 1000
 #define kSecondsTo100NSUnits				( 10 * 1000 * 1000 )
+#ifndef SPC_DISABLED
 #define kSPSMaintenanceWakePeriod			-30
+#endif
 #define kWaitToRetry						(60 * 5)
 
 #define RR_CACHE_SIZE 500
 static CacheEntity gRRCache[RR_CACHE_SIZE];
+
 #if 0
 #pragma mark == Structures ==
 #endif
@@ -109,8 +111,10 @@ static mStatus			TearDownServiceEvents();
 static mStatus			SetupNotifications();
 static mStatus			TearDownNotifications();
 static void CALLBACK	StopNotification( HANDLE event, void * context );
+#ifndef SPC_DISABLED
 static void CALLBACK	PowerSuspendNotification( HANDLE event, void * context );
 static void	CALLBACK	PowerResumeNotification( HANDLE event, void * context );
+#endif
 static void CALLBACK	InterfaceListNotification( SOCKET socket, LPWSANETWORKEVENTS event, void *context );
 static void CALLBACK	ComputerDescriptionNotification( HANDLE event, void *context );
 static void CALLBACK	TCPChangedNotification( HANDLE event, void *context );
@@ -120,12 +124,17 @@ static void CALLBACK	FileSharingChangedNotification( HANDLE event, void *context
 static void CALLBACK	AdvertisedServicesChangedNotification( HANDLE event, void *context );
 #endif
 static void CALLBACK	FirewallChangedNotification( HANDLE event, void *context );
+#ifndef SPC_DISABLED
 static void CALLBACK	SPSWakeupNotification( HANDLE event, void *context );
 static void	CALLBACK	SPSSleepNotification( HANDLE event, void *context );
+#endif
+
 static void CALLBACK	UDSAcceptNotification( SOCKET sock, LPWSANETWORKEVENTS event, void *context );
 static void CALLBACK	UDSReadNotification( SOCKET sock, LPWSANETWORKEVENTS event, void *context );
 static void				CoreCallback(mDNS * const inMDNS, mStatus result);
+#ifndef SPC_DISABLED
 static mDNSu8			SystemWakeForNetworkAccess( LARGE_INTEGER * timeout );
+#endif
 
 
 #include	"mDNSEmbeddedAPI.h"
@@ -147,9 +156,11 @@ DEBUG_LOCAL SERVICE_TABLE_ENTRY			gServiceDispatchTable[] =
 	{ NULL, 		NULL }
 };
 DEBUG_LOCAL HANDLE						gStopEvent					= NULL;
+#ifndef SPC_DISABLED
 DEBUG_LOCAL HANDLE						gPowerSuspendEvent			= NULL;
 DEBUG_LOCAL HANDLE						gPowerSuspendAckEvent		= NULL;
 DEBUG_LOCAL HANDLE						gPowerResumeEvent			= NULL;
+#endif
 DEBUG_LOCAL SOCKET						gInterfaceListChangedSocket	= INVALID_SOCKET;
 DEBUG_LOCAL HKEY						gDescKey					= NULL;
 DEBUG_LOCAL HANDLE						gDescChangedEvent			= NULL;	// Computer description changed event
@@ -168,8 +179,10 @@ DEBUG_LOCAL HANDLE						gFirewallChangedEvent		= NULL;	// Firewall changed
 DEBUG_LOCAL SERVICE_STATUS				gServiceStatus;
 DEBUG_LOCAL SERVICE_STATUS_HANDLE		gServiceStatusHandle 	= NULL;
 DEBUG_LOCAL HANDLE						gServiceEventSource		= NULL;
+#ifndef SPC_DISABLED
 DEBUG_LOCAL HANDLE						gSPSWakeupEvent			= NULL;
 DEBUG_LOCAL HANDLE						gSPSSleepEvent			= NULL;
+#endif
 DEBUG_LOCAL SocketRef					gUDSSocket				= 0;
 DEBUG_LOCAL udsEventCallback			gUDSCallback			= NULL;
 
@@ -711,7 +724,7 @@ int	RunDirect( int argc, LPTSTR argv[] )
 {
 	OSStatus		err;
 	BOOL			initialized;
-   BOOL        ok;
+	BOOL			ok;
 	
 	initialized = FALSE;
 
@@ -774,7 +787,11 @@ static void WINAPI ServiceMain( DWORD argc, LPTSTR argv[] )
 	
 	gServiceStatus.dwServiceType 				= SERVICE_WIN32_SHARE_PROCESS;
 	gServiceStatus.dwCurrentState 				= 0;
+#ifndef SPC_DISABLED
+	gServiceStatus.dwControlsAccepted 			= SERVICE_ACCEPT_STOP|SERVICE_ACCEPT_SHUTDOWN;
+#else
 	gServiceStatus.dwControlsAccepted 			= SERVICE_ACCEPT_STOP|SERVICE_ACCEPT_SHUTDOWN|SERVICE_ACCEPT_POWEREVENT;
+#endif
 	gServiceStatus.dwWin32ExitCode 				= NO_ERROR;
 	gServiceStatus.dwServiceSpecificExitCode 	= NO_ERROR;
 	gServiceStatus.dwCheckPoint 				= 0;
@@ -884,8 +901,13 @@ exit:
 static DWORD WINAPI	ServiceControlHandler( DWORD inControl, DWORD inEventType, LPVOID inEventData, LPVOID inContext )
 {
 	BOOL		setStatus;
-	OSStatus	err;
 	BOOL		ok;
+#ifndef SPC_DISABLED
+	OSStatus	err;
+#else
+	(void)inEventType;
+#endif
+
 
 	DEBUG_UNUSED( inEventData );
 	DEBUG_UNUSED( inContext );
@@ -901,7 +923,8 @@ static DWORD WINAPI	ServiceControlHandler( DWORD inControl, DWORD inEventType, L
 			ServiceStop();
 			setStatus = FALSE;
 			break;
-		
+
+#ifndef SPC_DISABLED
 		case SERVICE_CONTROL_POWEREVENT:
 
 			if (inEventType == PBT_APMSUSPEND)
@@ -951,6 +974,7 @@ static DWORD WINAPI	ServiceControlHandler( DWORD inControl, DWORD inEventType, L
 			}
 		
 			break;
+#endif
 
 		default:
 			dlog( kDebugLevelNotice, DEBUG_NAME "ServiceControlHandler: event (0x%08X)\n", inControl );
@@ -1296,6 +1320,7 @@ mDNSlocal mStatus	SetupNotifications()
 	err = mDNSPollRegisterEvent( gStopEvent, StopNotification, NULL );
 	require_noerr( err, exit );
 
+#ifndef SPC_DISABLED
 	// Power Suspend
 
 	gPowerSuspendEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
@@ -1317,6 +1342,7 @@ mDNSlocal mStatus	SetupNotifications()
 	require_noerr( err, exit );
 	err = mDNSPollRegisterEvent( gPowerResumeEvent, PowerResumeNotification, NULL );
 	require_noerr( err, exit );
+#endif
 
 	// Register to listen for address list changes.
 	
@@ -1446,6 +1472,7 @@ mDNSlocal mStatus	SetupNotifications()
 		err = mStatus_NoError;
 	}
 
+#ifndef SPC_DISABLED
 	// SPSWakeup timer
 
 	gSPSWakeupEvent = CreateWaitableTimer( NULL, FALSE, NULL );
@@ -1461,6 +1488,7 @@ mDNSlocal mStatus	SetupNotifications()
 	require_noerr( err, exit );
 	err = mDNSPollRegisterEvent( gSPSSleepEvent, SPSSleepNotification, NULL );
 	require_noerr( err, exit );
+#endif
 
 exit:
 	if( err )
@@ -1558,6 +1586,7 @@ mDNSlocal mStatus	TearDownNotifications()
 		gFirewallKey = NULL;
 	}
 
+#ifndef SPC_DISABLED
 	if ( gSPSWakeupEvent )
 	{
 		mDNSPollUnregisterEvent( gSPSWakeupEvent );
@@ -1591,6 +1620,7 @@ mDNSlocal mStatus	TearDownNotifications()
 		CloseHandle( gPowerSuspendEvent );
 		gPowerSuspendEvent = NULL;
 	}
+#endif
 
 	if ( gStopEvent )
 	{
@@ -1612,7 +1642,7 @@ StopNotification( HANDLE event, void *context )
 	mDNS_StartExit( &gMDNSRecord );
 }
 
-
+#ifndef SPC_DISABLED
 mDNSlocal void CALLBACK
 PowerSuspendNotification( HANDLE event, void * context )
 {
@@ -1643,7 +1673,6 @@ PowerSuspendNotification( HANDLE event, void * context )
 	}
 }
 
-
 mDNSlocal void CALLBACK
 PowerResumeNotification( HANDLE event, void * context )
 {
@@ -1665,6 +1694,8 @@ PowerResumeNotification( HANDLE event, void * context )
 	mDNSCoreMachineSleep(&gMDNSRecord, FALSE);
 }
 
+
+#endif
 
 
 mDNSlocal void CALLBACK
@@ -1830,7 +1861,7 @@ FirewallChangedNotification( HANDLE event, void *context )
 
 
 
-
+#ifndef SPC_DISABLED
 mDNSlocal void CALLBACK
 SPSWakeupNotification( HANDLE event, void *context )
 {
@@ -1863,6 +1894,7 @@ SPSSleepNotification( HANDLE event, void *context )
 	PowerSuspendNotification( gPowerSuspendEvent, NULL );
 	SetSuspendState( FALSE, FALSE, FALSE );
 }
+#endif
 
 
 //===========================================================================================================================
@@ -2021,7 +2053,7 @@ mDNSexport void RecordUpdatedNiceLabel(mDNSs32 delay)
 	// No-op, for now
 }
 
-
+#ifndef SPC_DISABLED
 //===========================================================================================================================
 //	SystemWakeForNetworkAccess
 //===========================================================================================================================
@@ -2104,3 +2136,4 @@ exit:
 
 	return ok;
 }
+#endif

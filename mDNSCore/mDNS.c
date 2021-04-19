@@ -12940,6 +12940,7 @@ mDNSlocal void InitializeNetWakeState(mDNS *const m, NetworkInterfaceInfo *set)
 
 mDNSexport void mDNS_ActivateNetWake_internal(mDNS *const m, NetworkInterfaceInfo *set)
 {
+#ifndef SPC_DISABLED
     NetworkInterfaceInfo *p = m->HostInterfaces;
     while (p && p != set) p=p->next;
     if (!p) { LogMsg("mDNS_ActivateNetWake_internal: NetworkInterfaceInfo %p not found in active list", set); return; }
@@ -12949,10 +12950,15 @@ mDNSexport void mDNS_ActivateNetWake_internal(mDNS *const m, NetworkInterfaceInf
         LogSPS("ActivateNetWake for %s (%#a)", set->ifname, &set->ip);
         mDNS_StartBrowse_internal(m, &set->NetWakeBrowse, &SleepProxyServiceType, &localdomain, set->InterfaceID, 0, mDNSfalse, mDNSfalse, m->SPSBrowseCallback, set);
     }
+#else
+    (void)m;
+    (void)set;
+#endif
 }
 
 mDNSexport void mDNS_DeactivateNetWake_internal(mDNS *const m, NetworkInterfaceInfo *set)
 {
+#ifndef SPC_DISABLED
     NetworkInterfaceInfo *p = m->HostInterfaces;
     while (p && p != set) p=p->next;
     if (!p) { LogMsg("mDNS_DeactivateNetWake_internal: NetworkInterfaceInfo %p not found in active list", set); return; }
@@ -12982,6 +12988,10 @@ mDNSexport void mDNS_DeactivateNetWake_internal(mDNS *const m, NetworkInterfaceI
         // (includes resetting NetWakeBrowse.ThisQInterval back to -1)
         InitializeNetWakeState(m, set);
     }
+#else
+    (void)m;
+    (void)set;
+#endif
 }
 
 mDNSexport mStatus mDNS_RegisterInterface(mDNS *const m, NetworkInterfaceInfo *set, InterfaceActivationSpeed activationSpeed)
