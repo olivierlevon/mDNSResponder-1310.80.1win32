@@ -3277,6 +3277,7 @@ mDNSlocal int	getifaddrs( struct ifaddrs **outAddrs )
 	size_t						size;
 	struct ifaddrs *			ifa;
 	
+	dlog(kDebugLevelInfo, DEBUG_NAME "getifaddrs\n");
 
 	head	= NULL;
 	next	= &head;
@@ -3483,7 +3484,7 @@ mDNSlocal int	getifaddrs( struct ifaddrs **outAddrs )
 					sa4->sin_family = AF_INET;
 					sa4->sin_addr.s_addr = ipv4Netmask.sin_addr.s_addr;
 
-					dlog( kDebugLevelInfo, DEBUG_NAME "%s: IPv4 mask = %s\n", __ROUTINE__, inet_ntoa( sa4->sin_addr ) );
+//					dlog( kDebugLevelInfo, DEBUG_NAME "%s: IPv4 mask = %s\n", __ROUTINE__, inet_ntoa( sa4->sin_addr ) );
 					ifa->ifa_netmask = (struct sockaddr *) sa4;
 					break;
 				}
@@ -3554,7 +3555,7 @@ mDNSlocal int	getifaddrs( struct ifaddrs **outAddrs )
 					}
 
 					WSAAddressToStringA( ( LPSOCKADDR ) sa6, sizeof( struct sockaddr_in6 ), NULL, buf, &buflen );
-					dlog( kDebugLevelInfo, DEBUG_NAME "%s: IPv6 mask = %s\n", __ROUTINE__, buf );				
+//					dlog( kDebugLevelInfo, DEBUG_NAME "%s: IPv6 mask = %s\n", __ROUTINE__, buf );
 
 					break;
 				}
@@ -3606,6 +3607,8 @@ mDNSlocal int	getifaddrs_ipv4( struct ifaddrs **outAddrs )
 	struct ifaddrs **		next;
 	struct ifaddrs *		ifa;
 	
+	dlog(kDebugLevelInfo, DEBUG_NAME "getifaddrs_ipv4\n");
+
 	sock	= INVALID_SOCKET;
 	buffer	= NULL;
 	head	= NULL;
