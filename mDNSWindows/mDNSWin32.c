@@ -589,50 +589,6 @@ mDNSexport mDNSBool	mDNSPlatformMemSame( const void *inDst, const void *inSrc, m
 }
 
 //===========================================================================================================================
-//	mDNSPlatformMemCmp
-//===========================================================================================================================
-
-mDNSexport int	mDNSPlatformMemCmp( const void *inDst, const void *inSrc, mDNSu32 inSize )
-{
-	check( inSrc );
-	check( inDst );
-	
-	return( memcmp( inSrc, inDst, inSize ) );
-}
-
-mDNSexport void mDNSPlatformQsort(void *base, int nel, int width, int (*compar)(const void *, const void *))
-{
-	(void)base;
-	(void)nel;
-	(void)width;
-	(void)compar;
-}
-
-// Proxy stub functions
-mDNSexport mDNSu8 *DNSProxySetAttributes(DNSQuestion *q, DNSMessageHeader *h, DNSMessage *msg, mDNSu8 *ptr, mDNSu8 *limit)
-{
-    (void) q;
-    (void) h;
-    (void) msg;
-    (void) ptr;
-    (void) limit;
-
-    return ptr;
-}
-
-mDNSexport void DNSProxyInit(mDNS *const m, mDNSu32 IpIfArr[], mDNSu32 OpIf)
-{
-    (void) m;
-    (void) IpIfArr;
-    (void) OpIf;
-}
-
-mDNSexport void DNSProxyTerminate(mDNS *const m)
-{
-    (void) m;
-}
-
-//===========================================================================================================================
 //	mDNSPlatformMemZero
 //===========================================================================================================================
 
