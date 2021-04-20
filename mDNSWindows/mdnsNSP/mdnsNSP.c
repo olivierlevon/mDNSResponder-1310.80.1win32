@@ -240,6 +240,7 @@ BOOL APIENTRY	DllMain( HINSTANCE inInstance, DWORD inReason, LPVOID inReserved )
 		case DLL_PROCESS_ATTACH:			
 			gInstance = inInstance;		
 			gHostsFileInfo	= NULL;
+
 			debug_initialize( kDebugOutputTypeWindowsEventLog, "mDNS NSP", inInstance );
 			debug_set_property( kDebugPropertyTagPrintLevel, kDebugLevelNotice );
 			dlog( kDebugLevelTrace, "\n" );
@@ -250,7 +251,10 @@ BOOL APIENTRY	DllMain( HINSTANCE inInstance, DWORD inReason, LPVOID inReserved )
 		case DLL_PROCESS_DETACH:
 			HostsFileInfoFree( gHostsFileInfo );
 			gHostsFileInfo = NULL;
+
 			dlog( kDebugLevelVerbose, "%s: process detach\n", __ROUTINE__ );
+			debug_terminate();
+
 			break;
 		
 		case DLL_THREAD_ATTACH:
