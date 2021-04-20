@@ -875,20 +875,43 @@ mDNSlocal mStatus mDNSNetMonitor(void)
                                mDNS_Init_NoCache, mDNS_Init_ZeroCacheSize,
                                mDNS_Init_DontAdvertiseLocalAddresses,
                                mDNS_Init_NoInitCallback, mDNS_Init_NoInitCallbackContext);
-    if (status) return(status);
+    if (status) 
+        goto exit;
 
     gettimeofday(&tv_start, NULL);
 
 #if defined( WIN32 )
     status = SetupInterfaceList(&mDNSStorage);
-    if (status) return(status);
-    gStopEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-    if (gStopEvent == INVALID_HANDLE_VALUE) return mStatus_UnknownErr;
-    mDNSPollRegisterEvent( gStopEvent, StopNotification, NULL );
-    if (!SetConsoleCtrlHandler(ConsoleControlHandler, TRUE)) return mStatus_UnknownErr;
-    gRunning = mDNStrue; while (gRunning) mDNSPoll( INFINITE );
-    if (!SetConsoleCtrlHandler(ConsoleControlHandler, FALSE)) return mStatus_UnknownErr;
-    CloseHandle(gStopEvent);
+    if (status == mStatus_NoError)
+    { 
+        gStopEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+        if (gStopEvent != INVALID_HANDLE_VALUE)
+        {
+            status = mDNSPollRegisterEvent( gStopEvent, StopNotification, NULL );
+            if (status == mStatus_NoError)
+            {
+                if (SetConsoleCtrlHandler(ConsoleControlHandler, TRUE))
+                {
+                    gRunning = mDNStrue;
+                    while (gRunning)
+                    {
+                        status = mDNSPoll(INFINITE);
+                        if (status != mStatus_NoError)
+                            gRunning = mDNSfalse;
+                    }
+                    SetConsoleCtrlHandler(ConsoleControlHandler, FALSE);
+                }
+                else
+                    status = mStatus_UnknownErr;
+
+                mDNSPollUnregisterEvent(gStopEvent);
+                CloseHandle(gStopEvent);
+            }
+        }
+        else
+            status = mStatus_UnknownErr;
+    }
+    TearDownInterfaceList(&mDNSStorage);
 #else
     mDNSPosixListenForSignalInEventLoop(SIGINT);
     mDNSPosixListenForSignalInEventLoop(SIGTERM);
@@ -960,8 +983,10 @@ mDNSlocal mStatus mDNSNetMonitor(void)
         ShowSortedHostList(&IPv6HostList, kReportTopHosts);
     }
 
+exit:
     mDNS_Close(&mDNSStorage);
-    return(0);
+
+    return status;
 }
 
 void usage(const char* progname)
