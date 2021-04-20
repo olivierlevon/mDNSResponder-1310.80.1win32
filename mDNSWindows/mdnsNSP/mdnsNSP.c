@@ -89,7 +89,7 @@ typedef struct HostsFile
 
 typedef struct HostsFileInfo
 {
-	struct hostent		m_host;
+	struct hostent				m_host;
 	struct HostsFileInfo	*	m_next;
 } HostsFileInfo;
 
@@ -102,13 +102,6 @@ typedef struct HostsFileInfo
 //	Prototypes
 //===========================================================================================================================
 
-// DLL Exports
-
-BOOL WINAPI		DllMain( HINSTANCE inInstance, DWORD inReason, LPVOID inReserved );
-STDAPI			DllRegisterServer( void );
-STDAPI			DllRegisterServer( void );
-
-	
 // NSP SPIs
 
 int	WSPAPI	NSPCleanup( LPGUID inProviderID );
@@ -235,17 +228,6 @@ DEBUG_LOCAL CRITICAL_SECTION		gLock;
 DEBUG_LOCAL bool					gLockInitialized 	= false;
 DEBUG_LOCAL QueryRef				gQueryList	 		= NULL;
 DEBUG_LOCAL HostsFileInfo		*	gHostsFileInfo		= NULL;
-typedef DWORD
-	( WINAPI * GetAdaptersAddressesFunctionPtr )( 
-			ULONG 					inFamily, 
-			DWORD 					inFlags, 
-			PVOID 					inReserved, 
-			PIP_ADAPTER_ADDRESSES 	inAdapter, 
-			PULONG					outBufferSize );
-
-DEBUG_LOCAL HMODULE								gIPHelperLibraryInstance			= NULL;
-DEBUG_LOCAL GetAdaptersAddressesFunctionPtr		gGetAdaptersAddressesFunctionPtr	= NULL;
-
 
 
 #if 0
@@ -397,18 +379,6 @@ int WSPAPI	NSPStartup( LPGUID inProviderID, LPNSP_ROUTINE outRoutines )
 	outRoutines->NSPRemoveServiceClass	= NSPRemoveServiceClass;
 	outRoutines->NSPGetServiceClassInfo	= NSPGetServiceClassInfo;
 	
-	// See if we can get the address for the GetAdaptersAddresses() API.  This is only in XP, but we want our
-	// code to run on older versions of Windows
-
-	if ( !gIPHelperLibraryInstance )
-	{
-		gIPHelperLibraryInstance = LoadLibrary( TEXT( "Iphlpapi" ) );
-		if( gIPHelperLibraryInstance )
-		{
-			gGetAdaptersAddressesFunctionPtr = (GetAdaptersAddressesFunctionPtr) GetProcAddress( gIPHelperLibraryInstance, "GetAdaptersAddresses" );
-		}
-	}
-
 	err = NO_ERROR;
 	
 exit:
@@ -463,15 +433,6 @@ int	WSPAPI	NSPCleanup( LPGUID inProviderID )
 		gLockInitialized = false;
 		DeleteCriticalSection( &gLock );
 	}
-
-	if( gIPHelperLibraryInstance )
-	{
-		BOOL ok;
-				
-		ok = FreeLibrary( gIPHelperLibraryInstance );
-		check_translated_errno( ok, GetLastError(), kUnknownErr );
-		gIPHelperLibraryInstance = NULL;
-	}
 	
 exit:
 	dlog( kDebugLevelTrace, "%s end   (ticks=%d)\n", __ROUTINE__, GetTickCount() );
@@ -520,7 +481,7 @@ DEBUG_LOCAL int WSPAPI
 	dlog_query_set( kDebugLevelVerbose, inQuerySet );
 	
 	// Check if we can handle this type of request and if we support any of the protocols being requested.
-	// We only support the DNS namespace, TCP and UDP protocols, and IPv4. Only blob results are supported.
+	// We only support the DNS namespace, TCP and UDP protocols, IPv4 and IPv6. Only blob results are supported.
 	
 	require_action_quiet( inFlags & (LUP_RETURN_ADDR|LUP_RETURN_BLOB), exit, err = WSASERVICE_NOT_FOUND );
 	
@@ -535,7 +496,7 @@ DEBUG_LOCAL int WSPAPI
 		{
 			family = inQuerySet->lpafpProtocols[ i ].iAddressFamily;
 			protocol = inQuerySet->lpafpProtocols[ i ].iProtocol;
-			if( ( family == AF_INET ) && ( ( protocol == IPPROTO_UDP ) || ( protocol == IPPROTO_TCP ) ) )
+			if ( ( ( family == AF_INET ) || ( family == AF_INET6 ) || ( family == AF_UNSPEC ) ) && ( ( protocol == IPPROTO_UDP ) || ( protocol == IPPROTO_TCP ) ) )
 			{
 				break;
 			}
@@ -563,13 +524,9 @@ DEBUG_LOCAL int WSPAPI
 		( ( p[ 5 ] != 'L' ) && ( p[ 5 ] != 'l' ) ) ) )
 	{
 #ifdef ENABLE_REVERSE_LOOKUP
-
 		err = IsReverseLookup( name, size );
-
 #else
-
 		err = WSASERVICE_NOT_FOUND;
-
 #endif
 
 		require_noerr( err, exit );
@@ -2345,8 +2302,6 @@ GetScopeId( DWORD ifIndex )
 	head	= NULL;
 	next	= &head;
 	iaaList	= NULL;
-	
-	require( gGetAdaptersAddressesFunctionPtr, exit );
 
 	// Get the list of interfaces. The first call gets the size and the second call gets the actual data.
 	// This loops to handle the case where the interface changes in the window after getting the size, but before the
@@ -2357,14 +2312,14 @@ GetScopeId( DWORD ifIndex )
 	for( ;; )
 	{
 		iaaListSize = 0;
-		err = gGetAdaptersAddressesFunctionPtr( AF_UNSPEC, flags, NULL, NULL, &iaaListSize );
+		err = GetAdaptersAddresses( AF_UNSPEC, flags, NULL, NULL, &iaaListSize );
 		check( err == ERROR_BUFFER_OVERFLOW );
 		check( iaaListSize >= sizeof( IP_ADAPTER_ADDRESSES ) );
 		
 		iaaList = (IP_ADAPTER_ADDRESSES *) malloc( iaaListSize );
 		require_action( iaaList, exit, err = ERROR_NOT_ENOUGH_MEMORY );
 		
-		err = gGetAdaptersAddressesFunctionPtr( AF_UNSPEC, flags, NULL, iaaList, &iaaListSize );
+		err = GetAdaptersAddresses( AF_UNSPEC, flags, NULL, iaaList, &iaaListSize );
 		if( err == ERROR_SUCCESS ) break;
 		
 		free( iaaList );
@@ -2408,7 +2363,7 @@ GetScopeId( DWORD ifIndex )
 			ipv6IfIndex	= 0;
 		}
 
-		// Skip psuedo and tunnel interfaces.
+		// Skip pseudo and tunnel interfaces.
 		
 		if( ( ipv6IfIndex == 1 ) || ( iaa->IfType == IF_TYPE_TUNNEL ) )
 		{
