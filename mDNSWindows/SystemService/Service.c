@@ -27,7 +27,6 @@
 
 #include	"uds_daemon.h"
 #include	"GenLinkedList.h"
-#include	"Service.h"
 #include	"EventLog.h"
 
 #include	"Resource.h"
@@ -73,9 +72,6 @@
 #define RR_CACHE_SIZE 500
 static CacheEntity gRRCache[RR_CACHE_SIZE];
 
-#if 0
-#pragma mark == Structures ==
-#endif
 
 #if 0
 #pragma mark == Prototypes ==
@@ -87,25 +83,23 @@ static CacheEntity gRRCache[RR_CACHE_SIZE];
 
 static void				Usage( void );
 static BOOL WINAPI		ConsoleControlHandler( DWORD inControlEvent );
-static OSStatus			InstallService( LPCTSTR inName, LPCTSTR inDisplayName, LPCTSTR inDescription, LPCTSTR inPath );
-static OSStatus			RemoveService( LPCTSTR inName );
+static OSStatus			InstallService( LPCWSTR inName, LPCWSTR inDisplayName, LPCWSTR inDescription, LPCWSTR inPath );
+static OSStatus			RemoveService( LPCWSTR inName );
 static OSStatus			SetServiceParameters();
 static OSStatus			GetServiceParameters();
 static OSStatus			CheckFirewall();
-static OSStatus			SetServiceInfo( SC_HANDLE inSCM, LPCTSTR inServiceName, LPCTSTR inDescription );
+static OSStatus			SetServiceInfo( SC_HANDLE inSCM, LPCWSTR inServiceName, LPCWSTR inDescription );
 static void				ReportStatus( int inType, const char *inFormat, ... );
-
-static void WINAPI		ServiceMain( DWORD argc, LPTSTR argv[] );
+static void WINAPI		ServiceMain( DWORD argc, wchar_t *argv[] );
 static OSStatus			ServiceSetupEventLogging( void );
 static DWORD WINAPI		ServiceControlHandler( DWORD inControl, DWORD inEventType, LPVOID inEventData, LPVOID inContext );
-
-static OSStatus			ServiceRun( int argc, LPTSTR argv[] );
+static OSStatus			ServiceRun( int argc, wchar_t *argv[] );
 static void				ServiceStop( void );
-
-static OSStatus			ServiceSpecificInitialize( int argc, LPTSTR  argv[] );
-static OSStatus			ServiceSpecificRun( int argc, LPTSTR argv[] );
+static OSStatus			ServiceSpecificInitialize( int argc, wchar_t *argv[] );
+static int				RunDirect(int argc, wchar_t *argv[]);
+static OSStatus			ServiceSpecificRun( int argc, wchar_t *argv[] );
 static OSStatus			ServiceSpecificStop( void );
-static void				ServiceSpecificFinalize( int argc, LPTSTR argv[] );
+static void				ServiceSpecificFinalize( int argc, wchar_t *argv[] );
 static mStatus			SetupServiceEvents();
 static mStatus			TearDownServiceEvents();
 static mStatus			SetupNotifications();
@@ -128,7 +122,6 @@ static void CALLBACK	FirewallChangedNotification( HANDLE event, void *context );
 static void CALLBACK	SPSWakeupNotification( HANDLE event, void *context );
 static void	CALLBACK	SPSSleepNotification( HANDLE event, void *context );
 #endif
-
 static void CALLBACK	UDSAcceptNotification( SOCKET sock, LPWSANETWORKEVENTS event, void *context );
 static void CALLBACK	UDSReadNotification( SOCKET sock, LPWSANETWORKEVENTS event, void *context );
 static void				CoreCallback(mDNS * const inMDNS, mStatus result);
@@ -136,8 +129,6 @@ static void				CoreCallback(mDNS * const inMDNS, mStatus result);
 static mDNSu8			SystemWakeForNetworkAccess( LARGE_INTEGER * timeout );
 #endif
 
-
-#include	"mDNSEmbeddedAPI.h"
 
 #if 0
 #pragma mark == Globals ==
@@ -195,7 +186,7 @@ DEBUG_LOCAL udsEventCallback			gUDSCallback			= NULL;
 //	Main
 //===========================================================================================================================
 
-int	Main( int argc, LPTSTR argv[] )
+int	Main( int argc, wchar_t *argv[] )
 {
 	OSStatus		err;
 	BOOL			ok;
@@ -345,7 +336,7 @@ exit:
 //	InstallService
 //===========================================================================================================================
 
-static OSStatus	InstallService( LPCTSTR inName, LPCTSTR inDisplayName, LPCTSTR inDescription, LPCTSTR inPath )
+static OSStatus	InstallService( LPCWSTR inName, LPCWSTR inDisplayName, LPCWSTR inDescription, LPCWSTR inPath )
 {
 	OSStatus		err;
 	SC_HANDLE		scm;
@@ -408,7 +399,7 @@ exit:
 //	RemoveService
 //===========================================================================================================================
 
-static OSStatus	RemoveService( LPCTSTR inName )
+static OSStatus	RemoveService( LPCWSTR inName )
 {
 	OSStatus			err;
 	SC_HANDLE			scm;
@@ -613,7 +604,7 @@ exit:
 //	SetServiceInfo
 //===========================================================================================================================
 
-static OSStatus	SetServiceInfo( SC_HANDLE inSCM, LPCTSTR inServiceName, LPCTSTR inDescription )
+static OSStatus	SetServiceInfo( SC_HANDLE inSCM, LPCWSTR inServiceName, LPCWSTR inDescription )
 {
 	OSStatus				err;
 	SC_LOCK					lock;
@@ -720,7 +711,7 @@ static void	ReportStatus( int inType, const char *inFormat, ... )
 //	RunDirect
 //===========================================================================================================================
 
-int	RunDirect( int argc, LPTSTR argv[] )
+static int	RunDirect( int argc, wchar_t *argv[] )
 {
 	OSStatus		err;
 	BOOL			initialized;
@@ -769,7 +760,7 @@ exit:
 //	ServiceMain
 //===========================================================================================================================
 
-static void WINAPI ServiceMain( DWORD argc, LPTSTR argv[] )
+static void WINAPI ServiceMain( DWORD argc, wchar_t *argv[] )
 {
 	OSStatus		err;
 	BOOL			ok;
@@ -846,7 +837,7 @@ static OSStatus	ServiceSetupEventLogging( void )
 {
 	OSStatus			err;
 	HKEY				key;
-	LPCTSTR				s;
+	LPCWSTR				s;
 	DWORD				typesSupported;
 	WCHAR				path[ MAX_PATH ];
 	DWORD 				n;
@@ -994,7 +985,7 @@ static DWORD WINAPI	ServiceControlHandler( DWORD inControl, DWORD inEventType, L
 //	ServiceRun
 //===========================================================================================================================
 
-static OSStatus	ServiceRun( int argc, LPTSTR argv[] )
+static OSStatus	ServiceRun( int argc, wchar_t *argv[] )
 {
 	OSStatus		err;
 	BOOL			initialized;
@@ -1113,7 +1104,7 @@ static void	ServiceStop( void )
 //	ServiceSpecificInitialize
 //===========================================================================================================================
 
-static OSStatus	ServiceSpecificInitialize( int argc, LPTSTR argv[] )
+static OSStatus	ServiceSpecificInitialize( int argc, wchar_t *argv[] )
 {
 	OSStatus err;
 	
@@ -1146,7 +1137,7 @@ exit:
 //	ServiceSpecificRun
 //===========================================================================================================================
 
-static OSStatus	ServiceSpecificRun( int argc, LPTSTR argv[] )
+static OSStatus	ServiceSpecificRun( int argc, wchar_t *argv[] )
 {
 	mDNSBool done = mDNSfalse;
 	mStatus err = mStatus_NoError;
@@ -1249,7 +1240,7 @@ exit:
 //	ServiceSpecificFinalize
 //===========================================================================================================================
 
-static void	ServiceSpecificFinalize( int argc, LPTSTR argv[] )
+static void	ServiceSpecificFinalize( int argc, wchar_t *argv[] )
 {
 	DEBUG_UNUSED( argc );
 	DEBUG_UNUSED( argv );

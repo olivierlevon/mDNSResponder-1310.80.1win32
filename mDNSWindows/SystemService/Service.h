@@ -15,16 +15,8 @@
  * limitations under the License.
  */
 
-#ifndef	__MDNS_SERVICE_H__
-#define	__MDNS_SERVICE_H__
+#pragma once
 
+#include	<stdlib.h>
 
-#include <windows.h>
-
-
-extern int	RunDirect( int argc, LPTSTR argv[] );
-extern int	Main( int argc, LPTSTR argv[] );
-
-
-#endif
-
+extern int	Main( int argc, wchar_t *argv[] );

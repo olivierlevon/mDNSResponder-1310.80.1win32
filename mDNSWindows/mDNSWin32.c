@@ -1532,7 +1532,7 @@ mDNSPlatformDynDNSHostNameStatusChanged(const domainname *const dname, const mSt
 {
 	char		uname[MAX_ESCAPED_DOMAIN_NAME];
 	DWORD		bStatus;
-	LPCTSTR		name;
+	LPCWSTR		name;
 	HKEY		key = NULL;
 	mStatus		err;
 	char	*	p;
@@ -2040,7 +2040,7 @@ mStatus	SetupNiceName( mDNS * const inMDNS )
 {
 	HKEY		descKey = NULL;
 	char		utf8[ 256 ];
-	LPCTSTR		s;
+	LPCWSTR		s;
 	LPWSTR		joinName;
 	NETSETUP_JOIN_STATUS joinStatus;
 	mStatus		err = 0;
