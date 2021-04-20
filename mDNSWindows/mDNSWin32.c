@@ -62,9 +62,6 @@
 
 #define	kMDNSDefaultName							"My Computer"
 
-#define	kWinSockMajorMin							2
-#define	kWinSockMinorMin							2
-
 #define kRegistryMaxKeyLength						255
 
 static GUID											kWSARecvMsgGUID = WSAID_WSARECVMSG;
@@ -229,8 +226,6 @@ mDNSlocal HANDLE					gSMBThreadQuitEvent			= NULL;
 mDNSexport mStatus	mDNSPlatformInit( mDNS * const inMDNS )
 {
 	mStatus		err;
-	WSADATA		wsaData;
-	int			supported;
 	struct sockaddr_in	sa4;
 	struct sockaddr_in6 sa6;
 	int					sa4len;
@@ -252,14 +247,6 @@ mDNSexport mStatus	mDNSPlatformInit( mDNS * const inMDNS )
 	require_action( inMDNS->p->checkFileSharesTimer, exit, err = mStatus_UnknownErr );
 	inMDNS->p->checkFileSharesTimeout		= 10;		// Retry time for CheckFileShares() in seconds
 #endif
-	
-	// Startup WinSock 2.2 or later.
-	
-	err = WSAStartup( MAKEWORD( kWinSockMajorMin, kWinSockMinorMin ), &wsaData );
-	require_noerr( err, exit );
-	
-	supported = ( ( LOBYTE( wsaData.wVersion ) == kWinSockMajorMin ) && ( HIBYTE( wsaData.wVersion ) == kWinSockMinorMin ) );
-	require_action( supported, exit, err = mStatus_UnsupportedErr );
 	
 	inMDNS->CanReceiveUnicastOn5353 = CanReceiveUnicast();
 	
@@ -449,8 +436,6 @@ mDNSexport void	mDNSPlatformClose( mDNS * const inMDNS )
 	UDPCloseSocket( &inMDNS->p->unicastSock6 );
 
 #endif
-
-	WSACleanup();
 	
 	dlog( kDebugLevelTrace, DEBUG_NAME "platform close done\n" );
 }

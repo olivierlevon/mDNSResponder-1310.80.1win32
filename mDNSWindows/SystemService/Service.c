@@ -192,11 +192,19 @@ int	Main( int argc, wchar_t *argv[] )
 	BOOL			ok;
 	BOOL			start;
 	int				i;
+	WSADATA			wsaData;
+	int WinSockInitialized = 0;
 
 	HeapSetInformation( NULL, HeapEnableTerminationOnCorruption, NULL, 0 );
 
 	debug_initialize( kDebugOutputTypeMetaConsole );
 	debug_set_property( kDebugPropertyTagPrintLevel, kDebugLevelVerbose );
+
+	// Startup WinSock 2.2 or later.
+	
+	err = WSAStartup( MAKEWORD( 2, 2 ), &wsaData );
+	require_noerr( err, exit );
+	WinSockInitialized = 1;
 
 	// Default to automatically starting the service dispatcher if no extra arguments are specified.
 	
@@ -278,6 +286,10 @@ int	Main( int argc, wchar_t *argv[] )
 	
 exit:
 	dlog( kDebugLevelTrace, DEBUG_NAME "exited (%d %m)\n", err, err );
+
+	if (WinSockInitialized)
+		WSACleanup();
+
 	_CrtDumpMemoryLeaks();
 	return( (int) err );
 }

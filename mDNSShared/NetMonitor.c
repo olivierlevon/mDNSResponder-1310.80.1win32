@@ -964,74 +964,12 @@ mDNSlocal mStatus mDNSNetMonitor(void)
     return(0);
 }
 
-mDNSexport int main(int argc, char **argv)
+void usage(const char* progname)
 {
-    const char *progname = strrchr(argv[0], '/') ? strrchr(argv[0], '/') + 1 : argv[0];
-    int i;
-    mStatus status;
-
-#if defined(WIN32)
-    HeapSetInformation(NULL, HeapEnableTerminationOnCorruption, NULL, 0);
-#endif
-
-    setlinebuf(stdout);             // Want to see lines as they appear, not block buffered
-
-    for (i=1; i<argc; i++)
-    {
-		if (i+1 < argc && !strcmp(argv[i], "-i"))
-        {
-			FilterInterface = if_nametoindex(argv[i+1]);
-			if (!FilterInterface) FilterInterface = atoi(argv[i+1]);
-			if (!FilterInterface) {
-				fprintf(stderr, "Unknown interface %s\n", argv[i+1]);
-				goto usage;
-			}
-            printf("Monitoring interface %d/%s\n", FilterInterface, argv[i+1]);
-			i += 1;
-        }
-        else if (!strcmp(argv[i], "-6"))
-        {
-            AddressType = mDNSAddrType_IPv6;
-            printf("Monitoring IPv6 traffic\n");
-        }
-        else
-        {
-            struct in_addr s4;
-            struct in6_addr s6;
-            FilterList *f;
-            mDNSAddr a;
-            a.type = mDNSAddrType_IPv4;
-
-            if (inet_pton(AF_INET, argv[i], &s4) == 1)
-                a.ip.v4.NotAnInteger = s4.s_addr;
-            else if (inet_pton(AF_INET6, argv[i], &s6) == 1)
-            {
-                a.type = mDNSAddrType_IPv6;
-                mDNSPlatformMemCopy(&a.ip.v6, &s6, sizeof(a.ip.v6));
-            }
-            else
-            {
-                struct hostent *h = gethostbyname(argv[i]);
-                if (h) a.ip.v4.NotAnInteger = *(long*)h->h_addr;
-                else goto usage;
-            }
-
-            f = malloc(sizeof(*f));
-            f->FilterAddr = a;
-            f->next = Filters;
-            Filters = f;
-        }
-    }
-
-    status = mDNSNetMonitor();
-    if (status) { fprintf(stderr, "%s: mDNSNetMonitor failed %d\n", progname, (int)status); return(status); }
-    return(0);
-
-usage:
     fprintf(stderr, "\nmDNS traffic monitor\n");
     fprintf(stderr, "Usage: %s [-i index] [-6] [host]\n", progname);
     fprintf(stderr, "Optional [-i index] parameter displays only packets from that interface index\n");
-	fprintf(stderr, "Optional [-6] parameter displays only ipv6 packets (defaults to only ipv4 packets)\n");
+    fprintf(stderr, "Optional [-6] parameter displays only ipv6 packets (defaults to only ipv4 packets)\n");
     fprintf(stderr, "Optional [host] parameter displays only packets from that host\n");
 
     fprintf(stderr, "\nPer-packet header output:\n");
@@ -1061,5 +999,103 @@ usage:
     fprintf(stderr, "ResolveQ       Resolve questions from clients actively connecting to an instance of this service\n");
     fprintf(stderr, "ResolveA       Resolve answers/announcments giving connection information for an instance of this service\n");
     fprintf(stderr, "\n");
-    return(-1);
+}
+
+mDNSexport int main(int argc, char **argv)
+{
+    const char *progname = strrchr(argv[0], '/') ? strrchr(argv[0], '/') + 1 : argv[0];
+    int i;
+    mStatus status = mStatus_NoError;
+#if defined(WIN32)
+    WSADATA wsaData;
+	int WinSockInitialized = 0;
+	int ret;
+#endif
+
+#if defined(WIN32)
+    HeapSetInformation(NULL, HeapEnableTerminationOnCorruption, NULL, 0);
+#endif
+
+    setlinebuf(stdout);             // Want to see lines as they appear, not block buffered
+
+#if defined(WIN32)
+    // Initialize WinSock WinSock 2.2 or later, needed by if_nametoindex/if_indextoname on Windows
+	ret = WSAStartup(MAKEWORD(2, 2), &wsaData);
+    if (ret != 0)
+	{
+		fprintf(stderr, "cannot initialize WinSock\n");
+		return ret;
+    }
+	else
+		WinSockInitialized = 1;
+#endif
+
+    for (i=1; i<argc; i++)
+    {
+		if (i+1 < argc && !strcmp(argv[i], "-i"))
+        {
+			FilterInterface = if_nametoindex(argv[i+1]);
+			if (!FilterInterface) 
+                FilterInterface = atoi(argv[i+1]);
+			if (!FilterInterface) 
+            {
+				fprintf(stderr, "Unknown interface %s\n", argv[i+1]);
+                usage(progname);
+				goto exit;
+			}
+            printf("Monitoring interface %d/%s\n", FilterInterface, argv[i+1]);
+			i += 1;
+        }
+        else if (!strcmp(argv[i], "-6"))
+        {
+            AddressType = mDNSAddrType_IPv6;
+            printf("Monitoring IPv6 traffic\n");
+        }
+        else
+        {
+            struct in_addr s4;
+            struct in6_addr s6;
+            FilterList *f;
+            mDNSAddr a;
+            a.type = mDNSAddrType_IPv4;
+
+            if (inet_pton(AF_INET, argv[i], &s4) == 1)
+                a.ip.v4.NotAnInteger = s4.s_addr;
+            else if (inet_pton(AF_INET6, argv[i], &s6) == 1)
+            {
+                a.type = mDNSAddrType_IPv6;
+                mDNSPlatformMemCopy(&a.ip.v6, &s6, sizeof(a.ip.v6));
+            }
+            else
+            {
+                struct hostent *h = gethostbyname(argv[i]);
+                if (h) 
+                    a.ip.v4.NotAnInteger = *(long*)h->h_addr;
+                else
+                {
+                    usage(progname);
+                    goto exit;
+                }
+            }
+
+            f = malloc(sizeof(*f));
+            f->FilterAddr = a;
+            f->next = Filters;
+            Filters = f;
+        }
+    }
+
+    status = mDNSNetMonitor();
+    if (status) 
+        fprintf(stderr, "%s: mDNSNetMonitor failed %d\n", progname, (int)status); 
+
+
+exit:
+#if defined(WIN32)
+    // Clean up WinSock.
+	if (WinSockInitialized)
+		WSACleanup();
+#endif
+
+    return(status);
 }
