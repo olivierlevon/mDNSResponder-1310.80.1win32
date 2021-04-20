@@ -345,7 +345,7 @@ int WSPAPI	NSPStartup( LPGUID inProviderID, LPNSP_ROUTINE outRoutines )
 {
 	OSStatus		err;
 	
-	dlog( kDebugLevelTrace, "%s begin (ticks=%d)\n", __ROUTINE__, GetTickCount() );
+	dlog( kDebugLevelTrace, "%s begin (ticks=%llu)\n", __ROUTINE__, GetTickCount64() );
 	dlog( kDebugLevelTrace, "%s (GUID=%U, refCount=%ld)\n", __ROUTINE__, inProviderID, gRefCount );
 	
 	// Only initialize if this is the first time NSPStartup is called. 
@@ -378,7 +378,7 @@ int WSPAPI	NSPStartup( LPGUID inProviderID, LPNSP_ROUTINE outRoutines )
 	err = NO_ERROR;
 	
 exit:
-	dlog( kDebugLevelTrace, "%s end   (ticks=%d)\n", __ROUTINE__, GetTickCount() );
+	dlog( kDebugLevelTrace, "%s end   (ticks=%llu)\n", __ROUTINE__, GetTickCount64() );
 	if( err != NO_ERROR )
 	{
 		NSPCleanup( inProviderID );
@@ -398,7 +398,7 @@ int	WSPAPI	NSPCleanup( LPGUID inProviderID )
 {
 	DEBUG_USE_ONLY( inProviderID );
 	
-	dlog( kDebugLevelTrace, "%s begin (ticks=%d)\n", __ROUTINE__, GetTickCount() );
+	dlog( kDebugLevelTrace, "%s begin (ticks=%llu)\n", __ROUTINE__, GetTickCount64() );
 	dlog( kDebugLevelTrace, "%s (GUID=%U, refCount=%ld)\n", __ROUTINE__, inProviderID, gRefCount );
 	
 	// Only initialize if this is the first time NSPStartup is called.
@@ -431,7 +431,7 @@ int	WSPAPI	NSPCleanup( LPGUID inProviderID )
 	}
 	
 exit:
-	dlog( kDebugLevelTrace, "%s end   (ticks=%d)\n", __ROUTINE__, GetTickCount() );
+	dlog( kDebugLevelTrace, "%s end   (ticks=%llu)\n", __ROUTINE__, GetTickCount64() );
 	return( NO_ERROR );
 }
 
@@ -465,7 +465,7 @@ DEBUG_LOCAL int WSPAPI
 	DEBUG_UNUSED( inProviderID );
 	DEBUG_UNUSED( inServiceClassInfo );
 	
-	dlog( kDebugLevelTrace, "%s begin (ticks=%d)\n", __ROUTINE__, GetTickCount() );
+	dlog( kDebugLevelTrace, "%s begin (ticks=%llu)\n", __ROUTINE__, GetTickCount64() );
 	
 	obj = NULL;
 	require_action( inQuerySet, exit, err = WSAEINVAL );
@@ -575,7 +575,7 @@ DEBUG_LOCAL int WSPAPI
 	*outLookup = (HANDLE) obj;
 	
 exit:
-	dlog( kDebugLevelTrace, "%s end   (ticks=%d)\n", __ROUTINE__, GetTickCount() );
+	dlog( kDebugLevelTrace, "%s end   (ticks=%llu)\n", __ROUTINE__, GetTickCount64() );
 	if( err != NO_ERROR )
 	{
 		SetLastError( (DWORD) err );
@@ -608,7 +608,7 @@ DEBUG_LOCAL int WSPAPI
 	
 	DEBUG_USE_ONLY( inFlags );
 	
-	dlog( kDebugLevelTrace, "%s begin (ticks=%d)\n", __ROUTINE__, GetTickCount() );
+	dlog( kDebugLevelTrace, "%s begin (ticks=%llu)\n", __ROUTINE__, GetTickCount64() );
 	
 	data4 = FALSE;
 	data6 = FALSE;
@@ -693,7 +693,7 @@ exit:
 		QueryRelease( obj );
 	}
 	NSPUnlock();
-	dlog( kDebugLevelTrace, "%s end   (ticks=%d)\n", __ROUTINE__, GetTickCount() );
+	dlog( kDebugLevelTrace, "%s end   (ticks=%llu)\n", __ROUTINE__, GetTickCount64() );
 	if( err != NO_ERROR )
 	{
 		SetLastError( (DWORD) err );
@@ -714,7 +714,7 @@ DEBUG_LOCAL int WSPAPI	NSPLookupServiceEnd( HANDLE inLookup )
 {
 	OSStatus		err;
 
-	dlog( kDebugLevelTrace, "%s begin (ticks=%d)\n", __ROUTINE__, GetTickCount() );
+	dlog( kDebugLevelTrace, "%s begin (ticks=%llu)\n", __ROUTINE__, GetTickCount64() );
 	
 	dlog( kDebugLevelTrace, "%s (lookup=%#p)\n", __ROUTINE__, inLookup );
 	
@@ -724,7 +724,7 @@ DEBUG_LOCAL int WSPAPI	NSPLookupServiceEnd( HANDLE inLookup )
 	require_noerr( err, exit );
 	
 exit:
-	dlog( kDebugLevelTrace, "%s end   (ticks=%d)\n", __ROUTINE__, GetTickCount() );
+	dlog( kDebugLevelTrace, "%s end   (ticks=%llu)\n", __ROUTINE__, GetTickCount64() );
 	if( err != NO_ERROR )
 	{
 		SetLastError( (DWORD) err );
@@ -756,12 +756,12 @@ DEBUG_LOCAL int WSPAPI
 	DEBUG_UNUSED( inOperation );
 	DEBUG_UNUSED( inFlags );
 	
-	dlog( kDebugLevelTrace, "%s begin (ticks=%d)\n", __ROUTINE__, GetTickCount() );
+	dlog( kDebugLevelTrace, "%s begin (ticks=%llu)\n", __ROUTINE__, GetTickCount64() );
 	dlog( kDebugLevelTrace, "%s\n", __ROUTINE__ );
 	
 	// We don't allow services to be registered so always return an error.
 	
-	dlog( kDebugLevelTrace, "%s end   (ticks=%d)\n", __ROUTINE__, GetTickCount() );
+	dlog( kDebugLevelTrace, "%s end   (ticks=%llu)\n", __ROUTINE__, GetTickCount64() );
 	return( WSAEINVAL );
 }
 
@@ -778,12 +778,12 @@ DEBUG_LOCAL int WSPAPI	NSPInstallServiceClass( LPGUID inProviderID, LPWSASERVICE
 	DEBUG_UNUSED( inProviderID );
 	DEBUG_UNUSED( inServiceClassInfo );
 	
-	dlog( kDebugLevelTrace, "%s begin (ticks=%d)\n", __ROUTINE__, GetTickCount() );
+	dlog( kDebugLevelTrace, "%s begin (ticks=%llu)\n", __ROUTINE__, GetTickCount64() );
 	dlog( kDebugLevelTrace, "%s\n", __ROUTINE__ );
 	
 	// We don't allow service classes to be installed so always return an error.
 
-	dlog( kDebugLevelTrace, "%s end   (ticks=%d)\n", __ROUTINE__, GetTickCount() );
+	dlog( kDebugLevelTrace, "%s end   (ticks=%llu)\n", __ROUTINE__, GetTickCount64() );
 	return( WSA_INVALID_PARAMETER );
 }
 
@@ -800,12 +800,12 @@ DEBUG_LOCAL int WSPAPI	NSPRemoveServiceClass( LPGUID inProviderID, LPGUID inServ
 	DEBUG_UNUSED( inProviderID );
 	DEBUG_UNUSED( inServiceClassID );
 	
-	dlog( kDebugLevelTrace, "%s begin (ticks=%d)\n", __ROUTINE__, GetTickCount() );
+	dlog( kDebugLevelTrace, "%s begin (ticks=%llu)\n", __ROUTINE__, GetTickCount64() );
 	dlog( kDebugLevelTrace, "%s\n", __ROUTINE__ );
 	
 	// We don't allow service classes to be installed so always return an error.
 	
-	dlog( kDebugLevelTrace, "%s end   (ticks=%d)\n", __ROUTINE__, GetTickCount() );
+	dlog( kDebugLevelTrace, "%s end   (ticks=%llu)\n", __ROUTINE__, GetTickCount64() );
 	return( WSATYPE_NOT_FOUND );
 }
 
@@ -822,12 +822,12 @@ DEBUG_LOCAL int WSPAPI	NSPGetServiceClassInfo(	LPGUID inProviderID, LPDWORD ioSi
 	DEBUG_UNUSED( ioSize );
 	DEBUG_UNUSED( ioServiceClassInfo );
 	
-	dlog( kDebugLevelTrace, "%s begin (ticks=%d)\n", __ROUTINE__, GetTickCount() );
+	dlog( kDebugLevelTrace, "%s begin (ticks=%llu)\n", __ROUTINE__, GetTickCount64() );
 	dlog( kDebugLevelTrace, "%s\n", __ROUTINE__ );
 	
 	// We don't allow service classes to be installed so always return an error.
 	
-	dlog( kDebugLevelTrace, "%s end   (ticks=%d)\n", __ROUTINE__, GetTickCount() );
+	dlog( kDebugLevelTrace, "%s end   (ticks=%llu)\n", __ROUTINE__, GetTickCount64() );
 	return( WSATYPE_NOT_FOUND );
 }
 
