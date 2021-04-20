@@ -55,7 +55,6 @@
 
 #define	DEBUG_NAME									"[mDNSWin32] "
 
-#define	MDNS_WINDOWS_USE_IPV6_IF_ADDRS				1
 #define	MDNS_WINDOWS_ENABLE_IPV4					1
 #define	MDNS_WINDOWS_ENABLE_IPV6					1
 #define	MDNS_FIX_IPHLPAPI_PREFIX_BUG				1
@@ -67,7 +66,6 @@
 #define	kWinSockMinorMin							2
 
 #define kRegistryMaxKeyLength						255
-#define kRegistryMaxValueName						16383
 
 static GUID											kWSARecvMsgGUID = WSAID_WSARECVMSG;
 
@@ -136,12 +134,7 @@ typedef struct MulticastWakeupStruct
 
 // Utilities
 
-#if( MDNS_WINDOWS_USE_IPV6_IF_ADDRS )
-	mDNSlocal int	getifaddrs_ipv6( struct ifaddrs **outAddrs );
-#endif
-
-mDNSlocal int getifaddrs_ipv4( struct ifaddrs **outAddrs );
-
+mDNSlocal int				getifaddrs_ipv4( struct ifaddrs **outAddrs );
 mDNSlocal DWORD				GetPrimaryInterface();
 mDNSlocal mStatus			AddressToIndexAndMask( struct sockaddr * address, uint32_t * index, struct sockaddr * mask );
 mDNSlocal mDNSBool			CanReceiveUnicast( void );
@@ -189,22 +182,6 @@ mDNSlocal UDPSocket		*		gUDPSockets				= NULL;
 mDNSlocal int					gUDPNumSockets			= 0;
 
 extern mDNS mDNSStorage;
-
-#if( MDNS_WINDOWS_USE_IPV6_IF_ADDRS )
-
-	typedef DWORD
-		( WINAPI * GetAdaptersAddressesFunctionPtr )( 
-			ULONG 					inFamily, 
-			DWORD 					inFlags, 
-			PVOID 					inReserved, 
-			PIP_ADAPTER_ADDRESSES 	inAdapter, 
-			PULONG					outBufferSize );
-
-	mDNSlocal HMODULE								gIPHelperLibraryInstance			= NULL;
-	mDNSlocal GetAdaptersAddressesFunctionPtr		gGetAdaptersAddressesFunctionPtr	= NULL;
-
-#endif
-
 
 #ifdef REG_SERVICES_ENABLED
 typedef DNSServiceErrorType ( DNSSD_API *DNSServiceRegisterFunc )
@@ -471,18 +448,6 @@ mDNSexport void	mDNSPlatformClose( mDNS * const inMDNS )
 
 	UDPCloseSocket( &inMDNS->p->unicastSock6 );
 
-#endif
-
-	// Free the DLL needed for IPv6 support.
-	
-#if( MDNS_WINDOWS_USE_IPV6_IF_ADDRS )
-	if( gIPHelperLibraryInstance )
-	{
-		gGetAdaptersAddressesFunctionPtr = NULL;
-		
-		FreeLibrary( gIPHelperLibraryInstance );
-		gIPHelperLibraryInstance = NULL;
-	}
 #endif
 
 	WSACleanup();
@@ -3301,59 +3266,6 @@ void FirewallDidChange( mDNS * const inMDNS )
 
 mDNSlocal int	getifaddrs( struct ifaddrs **outAddrs )
 {
-	int		err;
-	
-#if( MDNS_WINDOWS_USE_IPV6_IF_ADDRS )
-	
-	// Try to the load the GetAdaptersAddresses function from the IP Helpers DLL. This API is only available on Windows
-	// XP or later. Looking up the symbol at runtime allows the code to still work on older systems without that API.
-	
-	if( !gIPHelperLibraryInstance )
-	{
-		gIPHelperLibraryInstance = LoadLibrary( TEXT( "Iphlpapi" ) );
-		if( gIPHelperLibraryInstance )
-		{
-			gGetAdaptersAddressesFunctionPtr = 
-				(GetAdaptersAddressesFunctionPtr) GetProcAddress( gIPHelperLibraryInstance, "GetAdaptersAddresses" );
-			if( !gGetAdaptersAddressesFunctionPtr )
-			{
-				BOOL		ok;
-				
-				ok = FreeLibrary( gIPHelperLibraryInstance );
-				check_translated_errno( ok, GetLastError(), kUnknownErr );
-				gIPHelperLibraryInstance = NULL;
-			}
-		}
-	}
-	
-	// Use the new IPv6-capable routine if supported. Otherwise, fall back to the old and compatible IPv4-only code.
-	// <rdar://problem/4278934>  Fall back to using getifaddrs_ipv4 if getifaddrs_ipv6 fails
-	// <rdar://problem/6145913>  Fall back to using getifaddrs_ipv4 if getifaddrs_ipv6 returns no addrs
-
-	if( !gGetAdaptersAddressesFunctionPtr || ( ( ( err = getifaddrs_ipv6( outAddrs ) ) != mStatus_NoError ) || ( ( outAddrs != NULL ) && ( *outAddrs == NULL ) ) ) )
-	{
-		err = getifaddrs_ipv4( outAddrs );
-		require_noerr( err, exit );
-	}
-	
-#else
-
-	err = getifaddrs_ipv4( outAddrs );
-	require_noerr( err, exit );
-
-#endif
-
-exit:
-	return( err );
-}
-
-#if( MDNS_WINDOWS_USE_IPV6_IF_ADDRS )
-//===========================================================================================================================
-//	getifaddrs_ipv6
-//===========================================================================================================================
-
-mDNSlocal int	getifaddrs_ipv6( struct ifaddrs **outAddrs )
-{
 	DWORD						err;
 	int							i;
 	DWORD						flags;
@@ -3365,8 +3277,7 @@ mDNSlocal int	getifaddrs_ipv6( struct ifaddrs **outAddrs )
 	size_t						size;
 	struct ifaddrs *			ifa;
 	
-	check( gGetAdaptersAddressesFunctionPtr );
-	
+
 	head	= NULL;
 	next	= &head;
 	iaaList	= NULL;
@@ -3380,14 +3291,14 @@ mDNSlocal int	getifaddrs_ipv6( struct ifaddrs **outAddrs )
 	for( ;; )
 	{
 		iaaListSize = 0;
-		err = gGetAdaptersAddressesFunctionPtr( AF_UNSPEC, flags, NULL, NULL, &iaaListSize );
+		err = GetAdaptersAddresses( AF_UNSPEC, flags, NULL, NULL, &iaaListSize );
 		check( err == ERROR_BUFFER_OVERFLOW );
 		check( iaaListSize >= sizeof( IP_ADAPTER_ADDRESSES ) );
 		
 		iaaList = (IP_ADAPTER_ADDRESSES *) malloc( iaaListSize );
 		require_action( iaaList, exit, err = ERROR_NOT_ENOUGH_MEMORY );
 		
-		err = gGetAdaptersAddressesFunctionPtr( AF_UNSPEC, flags, NULL, iaaList, &iaaListSize );
+		err = GetAdaptersAddresses( AF_UNSPEC, flags, NULL, iaaList, &iaaListSize );
 		if( err == ERROR_SUCCESS ) break;
 		
 		free( iaaList );
@@ -3675,7 +3586,6 @@ exit:
 	return( (int) err );
 }
 
-#endif	// MDNS_WINDOWS_USE_IPV6_IF_ADDRS
 
 //===========================================================================================================================
 //	getifaddrs_ipv4
