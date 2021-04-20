@@ -507,6 +507,12 @@
   <ItemGroup>
     <ResourceCompile Include="Service.rc" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\mdnsresponder.nsi" />
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="..\network.natvis" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

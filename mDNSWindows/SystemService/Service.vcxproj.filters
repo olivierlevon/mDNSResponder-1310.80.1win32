@@ -148,4 +148,10 @@
       <Filter>Resource Files</Filter>
     </CustomBuild>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\mdnsresponder.nsi" />
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="..\network.natvis" />
+  </ItemGroup>
 </Project>
