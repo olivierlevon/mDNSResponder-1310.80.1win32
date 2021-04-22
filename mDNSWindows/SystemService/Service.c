@@ -1944,7 +1944,7 @@ UDSReadNotification( SOCKET sock, LPWSANETWORKEVENTS event, void *context )
 
 	if ( tcpSock )
 	{
-		tcpSock->userCallback( tcpSock->fd, 0, tcpSock->userContext );
+		tcpSock->userCallback( tcpSock->fd, tcpSock->userContext );
 	}
 }
 
