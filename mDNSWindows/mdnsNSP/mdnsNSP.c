@@ -520,12 +520,17 @@ DEBUG_LOCAL int WSPAPI
 		( ( p[ 5 ] != 'L' ) && ( p[ 5 ] != 'l' ) ) ) )
 	{
 #ifdef ENABLE_REVERSE_LOOKUP
-		err = IsReverseLookup( name, size );
+		err = IsReverseLookup(name, size);
+		if (err == WSASERVICE_NOT_FOUND)
+		{
+			dlog( kDebugLevelTrace, "% : not a reverse lookup (%S)", __ROUTINE__, name);
+			goto exit;
+		}
 #else
+		dlog( kDebugLevelTrace, "%s : non local domain (%S)", __ROUTINE__, name);
 		err = WSASERVICE_NOT_FOUND;
+		goto exit;
 #endif
-
-		require_noerr( err, exit );
 	}
 	else
 	{
