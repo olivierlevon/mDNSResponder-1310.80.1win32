@@ -891,7 +891,7 @@ DEBUG_LOCAL OSStatus	QueryCreate( const WSAQUERYSETW *inQuerySet, DWORD inQueryS
 
 	__try
 	{
-		err = DNSServiceQueryRecord( &obj->resolver4, 0, 0, name, kDNSServiceType_A, kDNSServiceClass_IN, QueryRecordCallback4, obj );
+		err = DNSServiceQueryRecord( &obj->resolver4, 0, kDNSServiceInterfaceIndexAny, name, kDNSServiceType_A, kDNSServiceClass_IN, QueryRecordCallback4, obj );
 	}
 	__except( EXCEPTION_EXECUTE_HANDLER )
 	{
@@ -925,7 +925,7 @@ DEBUG_LOCAL OSStatus	QueryCreate( const WSAQUERYSETW *inQuerySet, DWORD inQueryS
 
 	__try
 	{
-		err = DNSServiceQueryRecord( &obj->resolver6, 0, 0, name, kDNSServiceType_AAAA, kDNSServiceClass_IN, QueryRecordCallback6, obj );
+		err = DNSServiceQueryRecord( &obj->resolver6, 0, kDNSServiceInterfaceIndexAny, name, kDNSServiceType_AAAA, kDNSServiceClass_IN, QueryRecordCallback6, obj );
 	}
 	__except( EXCEPTION_EXECUTE_HANDLER )
 	{
