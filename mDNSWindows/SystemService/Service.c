@@ -712,7 +712,7 @@ static void	ReportStatus( int inType, const char *inFormat, ... )
 		{
 			int		n;
 			
-			n = vfprintf( stderr, inFormat, args );
+			n = vfprintf_s( stderr, inFormat, args );
 			check( n >= 0 );
 		}
 		va_end( args );
