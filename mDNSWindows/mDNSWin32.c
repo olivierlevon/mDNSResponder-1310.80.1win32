@@ -1413,12 +1413,12 @@ mDNSexport void mDNSPlatformSetLocalARP( const mDNSv4Addr * const tpa, const mDN
 	}
 
 mDNSexport void mDNSPlatformWriteDebugMsg(const char *msg)
-	{
+{
 	dlog( kDebugLevelInfo, "%s\n", msg );
-	}
+}
 
 mDNSexport void mDNSPlatformWriteLogMsg( const char * ident, const char * msg, mDNSLogLevel_t loglevel )
-	{
+{
 	extern mDNS mDNSStorage;
 	int type;
 	
@@ -1443,13 +1443,13 @@ mDNSexport void mDNSPlatformWriteLogMsg( const char * ident, const char * msg, m
 		default:
 			fprintf(stderr, "Unknown loglevel %d, assuming LOG_ERR\n", loglevel);
 			fflush(stderr);
-			}
+	}
 
-	if (mDNSStorage.p->reportStatusFunc)
+	if (!mDNS_DebugMode && mDNSStorage.p->reportStatusFunc)
 		mDNSStorage.p->reportStatusFunc( type, msg );
 
 	dlog( kDebugLevelInfo, "%s\n", msg );
-	}
+}
 
 mDNSexport void mDNSPlatformSourceAddrForDest( mDNSAddr * const src, const mDNSAddr * const dst )
 	{
