@@ -261,9 +261,26 @@ int	Main( int argc, wchar_t *argv[] )
 		{
 			start = TRUE;
 		}
-		else if( wcscmp(argv[i], TEXT("-q") ) == 0 )			        // Quiet Mode (toggle)
+		else if( wcscmp(argv[i], TEXT("-q") ) == 0 )			    // Quiet Mode (toggle)
 		{
 			gServiceQuietMode = !gServiceQuietMode;
+		}
+		else if (wcscmp(argv[i], TEXT("-v")) == 0)					// Verbose Mode (toggle)
+		{
+			mDNS_LoggingEnabled = 1;
+		}
+		else if (wcscmp(argv[i], TEXT("-d")) == 0)					// Debug Mode (toggle)
+		{
+			mDNS_DebugMode = 1;          // If non-zero, LogMsg() writes to stderr instead of syslog
+		}
+		else if (wcscmp(argv[i], TEXT("-t")) == 0)					// Mcast Tracing (toggle)
+		{
+			mDNS_McastTracingEnabled = 1;
+		}
+		else if (wcscmp(argv[i], TEXT("-p")) == 0)					// Packet & Mcast Logging (toggle)
+		{
+			mDNS_PacketLoggingEnabled = 1;
+			mDNS_McastLoggingEnabled = 1;
 		}
 		else if( wcscmp( argv[ i ], TEXT("-server") ) == 0 )		// Server
 		{
@@ -329,6 +346,12 @@ static void	Usage( void )
 	fprintf( stderr, "    -remove      Stops the service and deletes it\n" );
 	fprintf( stderr, "    -start       Starts the service dispatcher after processing all other arguments\n" );
 	fprintf( stderr, "    -server      Runs the service directly as a server (for debugging)\n" );
+#ifdef _DEBUG		 
+	fprintf( stderr, "    -d          Debug mode enabled\n");
+	fprintf( stderr, "    -p          Packet logging enabled\n");
+	fprintf( stderr, "    -t          Tracing enabled\n");
+	fprintf( stderr, "    -v          Logging enabled\n");
+#endif
 	fprintf( stderr, "    -q           Toggles Quiet Mode (no events or output)\n" );
 	fprintf( stderr, "    -h[elp]      Display Help/Usage\n" );
 	fprintf( stderr, "\n" );
