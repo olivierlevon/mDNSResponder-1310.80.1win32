@@ -48,9 +48,6 @@
 #include	<iptypes.h>
 #include	<powrprof.h>
 
-#ifndef HeapEnableTerminationOnCorruption
-#	define HeapEnableTerminationOnCorruption (HEAP_INFORMATION_CLASS)1
-#endif
 
 #if 0
 #pragma mark == Constants ==
@@ -195,8 +192,6 @@ int	Main( int argc, wchar_t *argv[] )
 	WSADATA			wsaData;
 	int WinSockInitialized = 0;
 
-	HeapSetInformation( NULL, HeapEnableTerminationOnCorruption, NULL, 0 );
-
 	debug_initialize( kDebugOutputTypeMetaConsole );
 	debug_set_property( kDebugPropertyTagPrintLevel, kDebugLevelVerbose );
 
@@ -290,7 +285,6 @@ exit:
 	if (WinSockInitialized)
 		WSACleanup();
 
-	_CrtDumpMemoryLeaks();
 	return( (int) err );
 }
 

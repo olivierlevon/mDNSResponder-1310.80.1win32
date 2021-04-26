@@ -15,8 +15,15 @@
  * limitations under the License.
  */
 
+#include <crtdbg.h>
+#include <windows.h>
+
 #include "Service.h"
 
+
+#ifndef HeapEnableTerminationOnCorruption
+#	define HeapEnableTerminationOnCorruption (HEAP_INFORMATION_CLASS)1
+#endif
 
 //===========================================================================================================================
 //	main
@@ -24,6 +31,14 @@
 
 int __cdecl wmain( int argc, wchar_t * argv[] )
 {
-	return Main( argc, argv );
+	int ret;
+
+	HeapSetInformation(NULL, HeapEnableTerminationOnCorruption, NULL, 0);
+
+	ret = Main( argc, argv );
+
+	_CrtDumpMemoryLeaks();
+
+	return ret;
 }
 
