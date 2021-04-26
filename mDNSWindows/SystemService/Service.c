@@ -31,6 +31,8 @@
 
 #include	"Resource.h"
 
+#include	"WinVersRes.h"
+
 #include	"mDNSEmbeddedAPI.h"
 #include	"uDNS.h"
 #include	"mDNSWin32.h"
@@ -338,19 +340,40 @@ exit:
 
 static void	Usage( void )
 {
+	const char* config =
+#if defined(_DEBUG) || defined(DEBUG)
+		"DEBUG";
+#else
+		"";
+#endif
+#if defined _M_IX86 || defined _M_AMD64
+#define BUILDINFO_PLATFORM "x86"
+#elif defined _M_ARM || defined _M_ARM64
+#define BUILDINFO_PLATFORM "Arm"
+#else
+#define BUILDINFO_PLATFORM ""
+#endif
+	void* p;
+	const char* arch = "";
+	if (sizeof(p) == 8)
+		arch = "64bits ";
+	else
+		arch = "32bits ";
+
 	fprintf( stderr, "\n" );
-	fprintf( stderr, "mDNSResponder 1.0d1\n" );
+	fprintf( stderr, "mDNSResponder - Bonjour Service %s" BUILDINFO_PLATFORM ", %s build %s (DNS-SD library %d) on %s %s\n", 
+		     arch, config, MASTER_PROD_VERS_STR2, _DNS_SD_H, __DATE__, __TIME__ );
 	fprintf( stderr, "\n" );
 	fprintf( stderr, "    <no args>    Runs the service normally\n" );
 	fprintf( stderr, "    -install     Creates the service and starts it\n" );
 	fprintf( stderr, "    -remove      Stops the service and deletes it\n" );
 	fprintf( stderr, "    -start       Starts the service dispatcher after processing all other arguments\n" );
 	fprintf( stderr, "    -server      Runs the service directly as a server (for debugging)\n" );
-#ifdef _DEBUG		 
-	fprintf( stderr, "    -d          Debug mode enabled\n");
-	fprintf( stderr, "    -p          Packet logging enabled\n");
-	fprintf( stderr, "    -t          Tracing enabled\n");
-	fprintf( stderr, "    -v          Logging enabled\n");
+#ifdef _DEBUG
+	fprintf( stderr, "    -d           Debug mode enabled\n");
+	fprintf( stderr, "    -p           Packet logging enabled\n");
+	fprintf( stderr, "    -t           Tracing enabled\n");
+	fprintf( stderr, "    -v           Logging enabled\n");
 #endif
 	fprintf( stderr, "    -q           Toggles Quiet Mode (no events or output)\n" );
 	fprintf( stderr, "    -h[elp]      Display Help/Usage\n" );
