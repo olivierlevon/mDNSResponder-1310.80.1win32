@@ -190,10 +190,36 @@ int	Main( int argc, wchar_t *argv[] )
 	BOOL			start;
 	int				i;
 	WSADATA			wsaData;
-	int WinSockInitialized = 0;
+	int				WinSockInitialized = 0;
+    char			*env;
+    int				loglevel = kDebugLevelVerbose;
+
+	env = getenv("BONJOUR_DEBUG_LOG_LEVEL");
+    if (env)
+	{
+         int lvl = atoi(env);
+		 // Check for a valid log level
+		 if (lvl == kDebugLevelChatty ||
+			 lvl == kDebugLevelVerbose ||
+			 lvl == kDebugLevelTrace ||
+			 lvl == kDebugLevelInfo ||
+			 lvl == kDebugLevelNotice ||
+			 lvl == kDebugLevelWarning ||
+			 lvl == kDebugLevelAssert ||
+			 lvl == kDebugLevelRequire ||
+			 lvl == kDebugLevelError ||
+			 lvl == kDebugLevelCritical ||
+			 lvl == kDebugLevelAlert ||
+			 lvl == kDebugLevelEmergency ||
+			 lvl == kDebugLevelTragic
+			 )
+		 {
+			 loglevel = lvl;
+		 }
+    }
 
 	debug_initialize( kDebugOutputTypeMetaConsole );
-	debug_set_property( kDebugPropertyTagPrintLevel, kDebugLevelVerbose );
+	debug_set_property( kDebugPropertyTagPrintLevel, loglevel);
 
 	// Startup WinSock 2.2 or later.
 	
@@ -281,6 +307,7 @@ int	Main( int argc, wchar_t *argv[] )
 	
 exit:
 	dlog( kDebugLevelTrace, DEBUG_NAME "exited (%d %m)\n", err, err );
+	debug_terminate();
 
 	if (WinSockInitialized)
 		WSACleanup();
