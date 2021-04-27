@@ -5246,6 +5246,10 @@ mDNSexport int udsserver_exit(void)
     // Cancel all outstanding client requests
     while (all_requests) AbortUnlinkAndFree(all_requests);
 
+	RmvAutoBrowseDomain(0, &localdomain);
+	DeregisterLocalOnlyDomainEnumPTR(&mDNSStorage, &localdomain, mDNS_DomainTypeRegistration);
+	DeregisterLocalOnlyDomainEnumPTR(&mDNSStorage, &localdomain, mDNS_DomainTypeBrowse);
+
     // Clean up any special mDNSInterface_LocalOnly records we created, both the entries for "local" we
     // created in udsserver_init, and others we created as a result of reading local configuration data
     while (LocalDomainEnumRecords)
