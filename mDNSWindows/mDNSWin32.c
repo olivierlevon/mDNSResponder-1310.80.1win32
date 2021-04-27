@@ -423,7 +423,6 @@ mDNSexport void	mDNSPlatformClose( mDNS * const inMDNS )
 	
 	err = TearDownInterfaceList( inMDNS );
 	check_noerr( err );
-	check( !inMDNS->p->inactiveInterfaceList );
 
 #if ( MDNS_WINDOWS_ENABLE_IPV4 )
 
@@ -436,6 +435,9 @@ mDNSexport void	mDNSPlatformClose( mDNS * const inMDNS )
 	UDPCloseSocket( &inMDNS->p->unicastSock6 );
 
 #endif
+
+	while ( SleepEx( 0, TRUE ) == WAIT_IO_COMPLETION ) { } // Let QueueUserAPC / FreeInterface do their job
+	check( !inMDNS->p->inactiveInterfaceList );
 	
 	dlog( kDebugLevelTrace, DEBUG_NAME "platform close done\n" );
 }
