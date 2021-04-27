@@ -5263,6 +5263,7 @@ mDNSexport int udsserver_exit(void)
     // that means we created it ourselves, so we should clean it up on exit
     if (dnssd_SocketValid(listenfd))
     {
+		udsSupportRemoveFDFromEventLoop(listenfd, (void *) mDNSNULL);
         dnssd_close(listenfd);
 #if !defined(USE_TCP_LOOPBACK)
         // Currently, we're unable to remove /var/run/mdnsd because we've changed to userid "nobody"
