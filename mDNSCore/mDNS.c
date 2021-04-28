@@ -15369,7 +15369,17 @@ mDNSexport void mDNS_FinalExit(mDNS *const m)
     AuthRecord *rr;
 
     LogRedact(MDNS_LOG_CATEGORY_DEFAULT, MDNS_LOG_DEFAULT, "mDNS_FinalExit: mDNSPlatformClose");
+
     mDNSPlatformClose(m);
+
+#ifndef UNICAST_DISABLED
+    if (m->ReverseMap.ThisQInterval != -1)
+    {
+        mStatus err = mDNS_StopQuery_internal(m, &m->ReverseMap);
+        if (err != mStatus_NoError)
+            verbosedebugf("%s ReverseMap error %d %m", __FUNCTION__, err, err);
+    }
+#endif
 
     for (slot = 0; slot < CACHE_HASH_SLOTS; slot++)
     {
@@ -15394,10 +15404,47 @@ mDNSexport void mDNS_FinalExit(mDNS *const m)
     for (rr = m->ResourceRecords; rr; rr = rr->next)
         LogMsg("mDNS_FinalExit failed to send goodbye for: %p %02X %s", rr, rr->resrec.RecordType, ARDisplayString(m, rr));
 
+    {
+        DNSServer* ns = m->DNSServers;
+        if (ns)
+        {
+            while (ns)
+            {
+                DNSServer* nextns = ns->next;
+
+                debugf("mDNS_FinalExit:  Deleting DNSServers %p %##s %#a:%u", ns, ns->domain.c, &ns->addr, mDNSVal16(ns->port));
+                mDNSPlatformMemFree(ns);
+                ns = nextns;
+            }
+            m->DNSServers = mDNSNULL;
+        }
+    }
+
+    {
+        McastResolver *mr, **mres = &m->McastResolvers;
+
+        while (*mres)
+        {
+            mr = *mres;
+            *mres = (*mres)->next;
+            debugf("mDNS_FinalExit:  Deleting mcast resolver %##s", mr->domain.c);
+            mDNSPlatformMemFree(mr);
+        }
+        m->McastResolvers = mDNSNULL;
+    }
+
 #if MDNSRESPONDER_SUPPORTS(APPLE, DNSSECv2)
     uninit_trust_anchors();
 #endif // MDNSRESPONDER_SUPPORTS(APPLE, DNSSECv2)
     
+    for (slot = 0; slot < AUTH_HASH_SLOTS; slot++)
+        if (m->rrauth.rrauth_hash[slot])
+        {
+            debugf("mDNS_FinalExit destroying m->rrauth.rrauth_hash[%d] %p", slot, m->rrauth.rrauth_hash[slot]);
+            mDNSPlatformMemFree(m->rrauth.rrauth_hash[slot]);
+            m->rrauth.rrauth_hash[slot] = mDNSNULL;
+        }
+
     LogRedact(MDNS_LOG_CATEGORY_DEFAULT, MDNS_LOG_DEFAULT, "mDNS_FinalExit: done");
 }
 
