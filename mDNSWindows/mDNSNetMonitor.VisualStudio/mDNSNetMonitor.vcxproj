@@ -297,7 +297,6 @@
     <Manifest>
       <AdditionalManifestFiles>mDNSNetMonitor.manifest;%(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
-
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <ClCompile>
@@ -354,6 +353,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\mDNSCore\DNSCommon.c" />
     <ClCompile Include="..\..\mDNSCore\DNSDigest.c" />
+    <ClCompile Include="..\..\mDNSShared\DebugServices.c" />
     <ClCompile Include="..\..\mDNSShared\dnssd_ipc.c" />
     <ClCompile Include="..\..\mDNSWindows\Poll.c" />
     <ClCompile Include="..\..\mDNSWindows\SystemService\Firewall.cpp" />
@@ -367,6 +367,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\mDNSCore\DNSCommon.h" />
+    <ClInclude Include="..\..\mDNSShared\DebugServices.h" />
     <ClInclude Include="..\..\mDNSShared\dnssd_ipc.h" />
     <ClInclude Include="..\..\mDNSWindows\Poll.h" />
     <ClInclude Include="..\..\mDNSWindows\SystemService\Firewall.h" />

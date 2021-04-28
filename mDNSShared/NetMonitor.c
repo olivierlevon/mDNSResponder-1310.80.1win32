@@ -34,6 +34,7 @@
 #include <string.h>         // For strrchr(), strcmp()
 #include <time.h>           // For "struct tm" etc.
 #include <signal.h>         // For SIGINT, SIGTERM
+#include "DebugServices.h"
 #if defined(WIN32)
 // Both mDNS.c and mDNSWin32.h declare UDPSocket_struct type resulting in a compile-time error, so
 // trick the compiler when including mDNSWin32.h
@@ -62,7 +63,7 @@ void setlinebuf( FILE * fp ) {}
 #   include <net/if.h>          // For IF_NAMESIZE
 #   include <netinet/in.h>      // For INADDR_NONE
 #   include <arpa/inet.h>       // For inet_addr()
-#   include "mDNSPosix.h"      // Defines the specific types needed to run mDNS on this platform
+#   include "mDNSPosix.h"       // Defines the specific types needed to run mDNS on this platform
 #endif
 
 //*************************************************************************************************************
@@ -1094,6 +1095,9 @@ mDNSexport int main(int argc, char **argv)
 
     setlinebuf(stdout);             // Want to see lines as they appear, not block buffered
 
+	debug_initialize( kDebugOutputTypeMetaConsole );
+	debug_set_property( kDebugPropertyTagPrintLevelMin, kDebugLevelInfo);
+
 #if defined(WIN32)
     // Initialize WinSock WinSock 2.2 or later, needed by if_nametoindex/if_indextoname on Windows
 	ret = WSAStartup(MAKEWORD(2, 2), &wsaData);
@@ -1127,6 +1131,25 @@ mDNSexport int main(int argc, char **argv)
             AddressType = mDNSAddrType_IPv6;
             printf("Monitoring IPv6 traffic\n");
         }
+#ifdef _DEBUG
+        else if (strcmp(argv[i], "-v") == 0)			// Verbose Mode (toggle)
+		{
+			mDNS_LoggingEnabled = 1;
+		}
+		else if (strcmp(argv[i], "-d") == 0)			// Debug Mode (toggle)
+		{
+			mDNS_DebugMode = 1;          // If non-zero, LogMsg() writes to stderr instead of syslog
+		}
+		else if (strcmp(argv[i], "-t") == 0)			// Mcast Tracing (toggle)
+		{
+			mDNS_McastTracingEnabled = 1;
+		}
+		else if (strcmp(argv[i], "-p") == 0)			// Packet & Mcast Logging (toggle)
+		{
+			mDNS_PacketLoggingEnabled = 1;
+			mDNS_McastLoggingEnabled = 1;
+		}
+#endif
         else
         {
             struct in_addr s4;
@@ -1184,6 +1207,8 @@ exit:
 	if (WinSockInitialized)
 		WSACleanup();
 #endif
+
+    debug_terminate();
 
     return(status);
 }
