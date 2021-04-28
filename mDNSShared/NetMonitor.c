@@ -43,6 +43,7 @@
 #   include "mDNSWin32.h"
 #   include "PosixCompat.h"
 #   include "Poll.h"
+#   include "WinVersRes.h"
 #define SendARP	__NOT__SendARP__NOT__
 #   include <iphlpapi.h>
 #undef SendARP
@@ -909,6 +910,8 @@ mDNSlocal mStatus mDNSNetMonitor(void)
     sigset_t signals;
 #endif
 
+    printf("...STARTING...\n");
+
 #if defined( WIN32 )
 	status = PollSetup();
 	if (status != mStatus_NoError)
@@ -1043,11 +1046,18 @@ exit:
 
 void usage(const char* progname)
 {
-    fprintf(stderr, "\nmDNS traffic monitor\n");
     fprintf(stderr, "Usage: %s [-i index] [-6] [host]\n", progname);
-    fprintf(stderr, "Optional [-i index] parameter displays only packets from that interface index\n");
+    fprintf(stderr, "Optional [-i index] parameter displays only packets from that interface index/name\n");
     fprintf(stderr, "Optional [-6] parameter displays only ipv6 packets (defaults to only ipv4 packets)\n");
     fprintf(stderr, "Optional [host] parameter displays only packets from that host\n");
+    fprintf(stderr, "Optional [-h] parameter displays this help\n");
+
+#ifdef _DEBUG
+    fprintf(stderr, "Optional [-d] parameter enables Debug mode\n");
+    fprintf(stderr, "Optional [-p] parameter enables Packet logging\n");
+    fprintf(stderr, "Optional [-t] parameter enables Tracing\n");
+    fprintf(stderr, "Optional [-v] parameter enables Logging\n");
+#endif
 
     fprintf(stderr, "\nPer-packet header output:\n");
     fprintf(stderr, "-Q-            Multicast Query from mDNS client that accepts multicast responses\n");
@@ -1078,9 +1088,46 @@ void usage(const char* progname)
     fprintf(stderr, "\n");
 }
 
+void version(const char* progname)
+{
+    const char* config =
+#if defined(_DEBUG) || defined(DEBUG)
+        "DEBUG";
+#else
+        "";
+#endif
+#if defined _M_IX86 || defined _M_AMD64
+#define BUILDINFO_PLATFORM "x86"
+#elif defined _M_ARM || defined _M_ARM64
+#define BUILDINFO_PLATFORM "Arm"
+#else
+#define BUILDINFO_PLATFORM ""
+#endif
+    void* p;
+    const char* arch = "";
+    if (sizeof(p) == 8)
+        arch = "64bits ";
+    else
+        arch = "32bits ";
+
+    fprintf(stderr, "\n");
+#if defined(WIN32)
+    fprintf(stderr, "%s - mDNS traffic monitor %s" BUILDINFO_PLATFORM ", %s build %s (DNS-SD library %d) on %s %s\n",
+            progname, arch, config, MASTER_PROD_VERS_STR2, _DNS_SD_H, __DATE__, __TIME__);
+#else
+    fprintf(stderr, "%s - mDNS traffic monitor %s" BUILDINFO_PLATFORM ", %s build %s (DNS-SD library %d) on %s %s\n",
+        progname, arch, config, _DNS_SD_H, __DATE__, __TIME__);
+#endif
+    fprintf(stderr, "\n");
+}
+
 mDNSexport int main(int argc, char **argv)
 {
+#if defined(WIN32)
+    const char* progname = strrchr(argv[0], '\\') ? strrchr(argv[0], '\\') + 1 : argv[0];
+#else
     const char *progname = strrchr(argv[0], '/') ? strrchr(argv[0], '/') + 1 : argv[0];
+#endif
     int i;
     mStatus status = mStatus_NoError;
 #if defined(WIN32)
@@ -1094,6 +1141,8 @@ mDNSexport int main(int argc, char **argv)
 #endif
 
     setlinebuf(stdout);             // Want to see lines as they appear, not block buffered
+
+    version(progname);
 
 	debug_initialize( kDebugOutputTypeMetaConsole );
 	debug_set_property( kDebugPropertyTagPrintLevelMin, kDebugLevelInfo);
@@ -1150,6 +1199,11 @@ mDNSexport int main(int argc, char **argv)
 			mDNS_McastLoggingEnabled = 1;
 		}
 #endif
+        else if (!strcmp(argv[i], "-h"))
+        {
+            usage(progname);
+            goto exit;
+        }
         else
         {
             struct in_addr s4;

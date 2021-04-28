@@ -496,6 +496,7 @@
     <ClInclude Include="..\mDNSWin32.h" />
     <ClInclude Include="..\Poll.h" />
     <ClInclude Include="..\RegNames.h" />
+    <ClInclude Include="..\WinVersRes.h" />
     <ClInclude Include="EventLog.h" />
     <ClInclude Include="Firewall.h" />
     <ClInclude Include="Resource.h" />

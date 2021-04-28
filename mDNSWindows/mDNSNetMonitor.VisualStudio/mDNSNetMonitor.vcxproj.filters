@@ -95,6 +95,9 @@
     <ClInclude Include="..\..\mDNSShared\DebugServices.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\WinVersRes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="mDNSNetMonitor.rc">

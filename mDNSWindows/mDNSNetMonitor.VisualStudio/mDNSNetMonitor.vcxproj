@@ -379,6 +379,7 @@
     <ClInclude Include="..\..\mDNSWindows\RegNames.h" />
     <ClInclude Include="..\..\mDNSWindows\Secret.h" />
     <ClInclude Include="..\..\mDNSCore\uDNS.h" />
+    <ClInclude Include="..\WinVersRes.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="mDNSNetMonitor.rc" />
