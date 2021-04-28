@@ -244,6 +244,24 @@ mDNSlocal HostEntry *AddHost(const mDNSAddr *addr, HostList *list)
         mDNS_snprintf(buffer, sizeof(buffer), "%d.%d.%d.%d.in-addr.arpa.", ip.b[3], ip.b[2], ip.b[1], ip.b[0]);
         MakeDomainNameFromDNSNameString(&entry->revname, buffer);
     }
+	else
+		if (entry->addr.type == mDNSAddrType_IPv6)
+		{
+			int j;
+			mDNSv6Addr ip = entry->addr.ip.v6;
+			char buffer[MAX_REVERSE_MAPPING_NAME+1];
+
+			for (j = 0; j < 16; j++)
+			{
+				static const char hexValues[] = "0123456789ABCDEF";
+				buffer[j * 4    ] = hexValues[ip.b[15 - j] & 0x0F];
+				buffer[j * 4 + 1] = '.';
+				buffer[j * 4 + 2] = hexValues[ip.b[15 - j] >> 4];
+				buffer[j * 4 + 3] = '.';
+			}
+			mDNS_snprintf(&buffer[64], sizeof(buffer)-64, "ip6.arpa.");
+			MakeDomainNameFromDNSNameString(&entry->revname, buffer);
+		}
 
     return(entry);
 }
