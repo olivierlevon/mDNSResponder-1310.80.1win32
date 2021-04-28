@@ -21,7 +21,9 @@
 #include "Service.h"
 
 #if defined(_DEBUG)
-#include <vld.h> 
+#if !defined(_M_ARM) && !defined(_M_ARM64)
+#include <vld.h>
+#endif
 #endif
 
 #ifndef HeapEnableTerminationOnCorruption
@@ -42,4 +44,3 @@ int __cdecl wmain( int argc, wchar_t * argv[] )
 
 	return ret;
 }
-

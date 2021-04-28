@@ -46,7 +46,9 @@
 #   include <iphlpapi.h>
 #undef SendARP
 #if defined(_DEBUG)
-#include <vld.h> 
+#if !defined(_M_ARM) && !defined(_M_ARM64)
+#include <vld.h>
+#endif
 #endif
 #   define IFNAMSIZ 256
 static HANDLE gStopEvent = INVALID_HANDLE_VALUE;
