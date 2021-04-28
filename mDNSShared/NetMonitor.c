@@ -131,7 +131,7 @@ static mDNSBool AddressType = mDNSAddrType_IPv4;
 static int NumPktQ, NumPktL, NumPktR, NumPktB;  // Query/Legacy/Response/Bad
 static int NumProbes, NumGoodbyes, NumQuestions, NumLegacy, NumAnswers, NumAdditionals;
 
-static ActivityStat *stats;
+static ActivityStat *stats = NULL;
 
 #define OPBanner "Total Ops   Probe   Goodbye  BrowseQ  BrowseA ResolveQ ResolveA"
 
@@ -454,6 +454,19 @@ mDNSlocal void printstats(int max)
         if (i==0) mprintf("%-25s%s\n", "Service Type", OPBanner);
         mprintf("%##-25s%8d %8d %8d %8d %8d %8d %8d\n", m->srvtype.c, m->totalops, m->stat[OP_probe],
                 m->stat[OP_goodbye], m->stat[OP_browseq], m->stat[OP_browsea], m->stat[OP_resolveq], m->stat[OP_resolvea]);
+    }
+}
+
+mDNSlocal void deletestats()
+{
+    ActivityStat *s, *m;
+
+    s = stats;
+    while (s)
+    {
+        m = s;
+        s = s->next;
+        free(m);
     }
 }
 
@@ -988,6 +1001,8 @@ mDNSlocal mStatus mDNSNetMonitor(void)
     mprintf("\n");
     printstats(kReportTopServices);
 
+    deletestats();
+
     if (!ExactlyOneFilter)
     {
         ShowSortedHostList(&IPv4HostList, kReportTopHosts);
@@ -1131,6 +1146,13 @@ mDNSexport int main(int argc, char **argv)
 
 
 exit:
+    // Cleanups
+
+    if (IPv4HostList.hosts)
+        free(IPv4HostList.hosts);
+    if (IPv6HostList.hosts)
+        free(IPv6HostList.hosts);
+
 #if defined(WIN32)
     // Clean up WinSock.
 	if (WinSockInitialized)
