@@ -1154,6 +1154,11 @@ mDNSexport int main(int argc, char **argv)
             }
 
             f = malloc(sizeof(*f));
+            if (f == NULL)
+            {
+                status = mStatus_NoMemoryErr;
+                goto exit;
+            }
             f->FilterAddr = a;
             f->next = Filters;
             Filters = f;
