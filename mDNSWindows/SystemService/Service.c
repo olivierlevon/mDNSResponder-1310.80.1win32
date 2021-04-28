@@ -1195,6 +1195,9 @@ static OSStatus	ServiceSpecificInitialize( int argc, wchar_t *argv[] )
 
 	gPlatformStorage.reportStatusFunc = ReportStatus;
 
+	err = PollSetup();
+	require_noerr( err, exit );
+
 	err = mDNS_Init( &gMDNSRecord, &gPlatformStorage, gRRCache, RR_CACHE_SIZE, mDNS_Init_AdvertiseLocalAddresses, CoreCallback, mDNS_Init_NoInitCallbackContext); 
 	require_noerr( err, exit);
 
@@ -1329,6 +1332,7 @@ static void	ServiceSpecificFinalize( int argc, wchar_t *argv[] )
 	//
 	TearDownNotifications();
 
+	PollCleanup();
 }
 
 

@@ -15,47 +15,30 @@
  * limitations under the License.
  */
 
-#ifndef _Poll_h
-#define _Poll_h
+#pragma once
 
-#include	"CommonServices.h"
-#include	<mswsock.h>
+
+#include	<winsock2.h>
+
 #include	"mDNSEmbeddedAPI.h"
-#include	"uDNS.h"
 
 
 #if defined(__cplusplus )
 extern "C" {
 #endif
 
-
 typedef void ( CALLBACK *mDNSPollSocketCallback )( SOCKET socket, LPWSANETWORKEVENTS event, void *context );
-typedef void ( CALLBACK *mDNSPollEventCallback )( HANDLE event, void *context );
+typedef void ( CALLBACK *mDNSPollEventCallback ) ( HANDLE event, void *context );
 
 
-extern mStatus
-mDNSPollRegisterSocket( SOCKET socket, int networkEvents, mDNSPollSocketCallback callback, void *context );
-
-
-extern void
-mDNSPollUnregisterSocket( SOCKET socket );
-
-
-extern mStatus
-mDNSPollRegisterEvent( HANDLE event, mDNSPollEventCallback callback, void *context );
-
-
-extern void
-mDNSPollUnregisterEvent( HANDLE event );
-
-
-extern mStatus
-mDNSPoll( DWORD msec );
-
+extern mStatus	PollSetup( void );
+extern mStatus	PollCleanup( void );
+extern mStatus	mDNSPollRegisterSocket( SOCKET socket, int networkEvents, mDNSPollSocketCallback callback, void *context );
+extern mStatus	mDNSPollUnregisterSocket( SOCKET socket );
+extern mStatus	mDNSPollRegisterEvent( HANDLE event, mDNSPollEventCallback callback, void *context );
+extern mStatus	mDNSPollUnregisterEvent( HANDLE event );
+extern mStatus	mDNSPoll( DWORD msec );
 
 #if defined(__cplusplus)
 }
-#endif
-
-
 #endif

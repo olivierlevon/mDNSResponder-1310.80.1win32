@@ -45,6 +45,9 @@
 #define SendARP	__NOT__SendARP__NOT__
 #   include <iphlpapi.h>
 #undef SendARP
+#if defined(_DEBUG)
+#include <vld.h> 
+#endif
 #   define IFNAMSIZ 256
 static HANDLE gStopEvent = INVALID_HANDLE_VALUE;
 static mDNSBool gRunning;
@@ -865,13 +868,21 @@ mDNSexport void mDNSCoreReceive(mDNS *const m, DNSMessage *const msg, const mDNS
 
 mDNSlocal mStatus mDNSNetMonitor(void)
 {
+    mStatus status;
     struct tm tm;
     int h, m, s, mul, div, TotPkt;
 #if !defined(WIN32)
     sigset_t signals;
 #endif
 
-    mStatus status = mDNS_Init(&mDNSStorage, &PlatformStorage,
+#if defined( WIN32 )
+	status = PollSetup();
+	if (status != mStatus_NoError)
+		goto exit;
+
+#endif
+
+    status = mDNS_Init(&mDNSStorage, &PlatformStorage,
                                mDNS_Init_NoCache, mDNS_Init_ZeroCacheSize,
                                mDNS_Init_DontAdvertiseLocalAddresses,
                                mDNS_Init_NoInitCallback, mDNS_Init_NoInitCallbackContext);
@@ -985,6 +996,10 @@ mDNSlocal mStatus mDNSNetMonitor(void)
 
 exit:
     mDNS_Close(&mDNSStorage);
+
+#if defined( WIN32 )
+	PollCleanup();
+#endif
 
     return status;
 }
