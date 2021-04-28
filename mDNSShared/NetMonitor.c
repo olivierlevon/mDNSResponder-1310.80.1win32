@@ -915,6 +915,7 @@ mDNSlocal mStatus mDNSNetMonitor(void)
 
 #endif
 
+    mDNSPlatformMemZero(&mDNSStorage, sizeof(mDNSStorage));
     status = mDNS_Init(&mDNSStorage, &PlatformStorage,
                                mDNS_Init_NoCache, mDNS_Init_ZeroCacheSize,
                                mDNS_Init_DontAdvertiseLocalAddresses,
