@@ -152,9 +152,7 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\mdnsresponder.nsi" />
-  </ItemGroup>
-  <ItemGroup>
     <Natvis Include="..\network.natvis" />
+    <Natvis Include="..\mdns.natvis" />
   </ItemGroup>
 </Project>
