@@ -128,7 +128,7 @@ mDNSexport const char ProgramName[] = "mDNSNetMonitor";
 
 struct timeval tv_start, tv_end, tv_interval;
 static int FilterInterface = 0;
-static FilterList *Filters;
+static FilterList *Filters = NULL;
 #define ExactlyOneFilter (Filters && !Filters->next)
 static mDNSBool AddressType = mDNSAddrType_IPv4;
 
@@ -1044,6 +1044,33 @@ exit:
     return status;
 }
 
+FilterList *AddFilter(mDNSAddr a)
+{
+    FilterList *f;
+
+    f = (FilterList*)malloc(sizeof(*f));
+    if (f != NULL)
+    {
+        f->FilterAddr = a;
+        f->next = Filters;
+        Filters = f;
+    }
+    return f;
+}
+
+void RmvFilters(void)
+{
+    FilterList *f, *a;
+
+    f = Filters;
+    while (f)
+    {
+        a = f;
+        f = f->next;
+        free(a);
+    }
+}
+
 void usage(const char* progname)
 {
     fprintf(stderr, "Usage: %s [-i index] [-6] [host]\n", progname);
@@ -1115,7 +1142,7 @@ void version(const char* progname)
     fprintf(stderr, "%s - mDNS traffic monitor %s" BUILDINFO_PLATFORM ", %s build %s (DNS-SD library %d) on %s %s\n",
             progname, arch, config, MASTER_PROD_VERS_STR2, _DNS_SD_H, __DATE__, __TIME__);
 #else
-    fprintf(stderr, "%s - mDNS traffic monitor %s" BUILDINFO_PLATFORM ", %s build %s (DNS-SD library %d) on %s %s\n",
+    fprintf(stderr, "%s - mDNS traffic monitor %s" BUILDINFO_PLATFORM ", %s build (DNS-SD library %d) on %s %s\n",
         progname, arch, config, _DNS_SD_H, __DATE__, __TIME__);
 #endif
     fprintf(stderr, "\n");
@@ -1149,7 +1176,7 @@ mDNSexport int main(int argc, char **argv)
 
 #if defined(WIN32)
     // Initialize WinSock WinSock 2.2 or later, needed by if_nametoindex/if_indextoname on Windows
-	ret = WSAStartup(MAKEWORD(2, 2), &wsaData);
+ 	ret = WSAStartup(MAKEWORD(2, 2), &wsaData);
     if (ret != 0)
 	{
 		fprintf(stderr, "cannot initialize WinSock\n");
@@ -1170,6 +1197,7 @@ mDNSexport int main(int argc, char **argv)
             {
 				fprintf(stderr, "Unknown interface %s\n", argv[i+1]);
                 usage(progname);
+                status = -1;
 				goto exit;
 			}
             printf("Monitoring interface %d/%s\n", FilterInterface, argv[i+1]);
@@ -1202,6 +1230,13 @@ mDNSexport int main(int argc, char **argv)
         else if (!strcmp(argv[i], "-h"))
         {
             usage(progname);
+            status = -1;
+            goto exit;
+        }
+        else if (*argv[i] == '-') // unkwnown option
+        {
+            usage(progname);
+            status = -1;
             goto exit;
         }
         else
@@ -1210,36 +1245,88 @@ mDNSexport int main(int argc, char **argv)
             struct in6_addr s6;
             FilterList *f;
             mDNSAddr a;
-            a.type = mDNSAddrType_IPv4;
 
             if (inet_pton(AF_INET, argv[i], &s4) == 1)
+            {
+                a.type = mDNSAddrType_IPv4;
                 a.ip.v4.NotAnInteger = s4.s_addr;
+                f = AddFilter(a);
+                if (f == NULL)
+                {
+                    status = mStatus_NoMemoryErr;
+                    goto exit;
+                }
+            }
             else if (inet_pton(AF_INET6, argv[i], &s6) == 1)
             {
                 a.type = mDNSAddrType_IPv6;
                 mDNSPlatformMemCopy(&a.ip.v6, &s6, sizeof(a.ip.v6));
-            }
-            else
-            {
-                struct hostent *h = gethostbyname(argv[i]);
-                if (h) 
-                    a.ip.v4.NotAnInteger = *(long*)h->h_addr;
-                else
+                f = AddFilter(a);
+                if (f == NULL)
                 {
-                    usage(progname);
+                    status = mStatus_NoMemoryErr;
                     goto exit;
                 }
             }
-
-            f = malloc(sizeof(*f));
-            if (f == NULL)
+            else
             {
-                status = mStatus_NoMemoryErr;
-                goto exit;
+                struct addrinfo hints;
+                struct addrinfo* ai, * ai0;
+                int e = 0;
+
+                memset(&hints, 0, sizeof(hints));
+                hints.ai_family = AF_UNSPEC;
+                hints.ai_socktype = SOCK_STREAM;
+                e = getaddrinfo(argv[i], NULL, &hints, &ai0);
+                if (e)
+                {
+#if defined(WIN32)
+                    fprintf(stderr, "getaddrinfo %s error : %s\n", argv[i], gai_strerrorA(e));
+#else
+                    fprintf(stderr, "getaddrinfo %s error : %s\n", argv[i], gai_strerror(e));
+#endif
+                    status = -1;
+                    goto exit;
+                }
+
+                if (ai0 == NULL)
+                {
+                    usage(progname);
+                    status = -1;
+                    goto exit;
+                }
+
+                for (ai = ai0; ai; ai = ai->ai_next)
+                {
+                    if (ai->ai_family == AF_INET)
+                    {
+                        a.type = mDNSAddrType_IPv4;
+                        a.ip.v4.NotAnInteger = *(long*)(&((struct sockaddr_in*)ai->ai_addr)->sin_addr);
+                        mprintf("filter %.4a %s\n", &a.ip.v4, argv[i]);
+                        f = AddFilter(a);
+                        if (f == NULL)
+                        {
+                            status = mStatus_NoMemoryErr;
+                            goto exit;
+                        }
+                    }
+                    else
+                        if (ai->ai_family == AF_INET6)
+                        {
+                            a.type = mDNSAddrType_IPv6;
+                            mDNSPlatformMemCopy(&a.ip.v6, &((struct sockaddr_in6*)ai->ai_addr)->sin6_addr, sizeof(a.ip.v6));
+                            mprintf("filter %.16a %\n", &a.ip.v6, argv[i]);
+                            f = AddFilter(a);
+                            if (f == NULL)
+                            {
+                                status = mStatus_NoMemoryErr;
+                                goto exit;
+                            }
+                        }
+                }
+
+                freeaddrinfo(ai0);
             }
-            f->FilterAddr = a;
-            f->next = Filters;
-            Filters = f;
         }
     }
 
@@ -1250,6 +1337,8 @@ mDNSexport int main(int argc, char **argv)
 
 exit:
     // Cleanups
+
+    RmvFilters();
 
     if (IPv4HostList.hosts)
         free(IPv4HostList.hosts);
